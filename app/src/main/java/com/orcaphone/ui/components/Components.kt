@@ -1,6 +1,5 @@
 package com.orcaphone.ui.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,7 +46,7 @@ fun Viewport3D(
     tick: Int,
     modifier: Modifier = Modifier,
 ) {
-    val dark = isSystemInDarkTheme()
+    val dark = com.orcaphone.ui.theme.LocalDarkTheme.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var view by remember { mutableStateOf<GlViewport?>(null) }
     DisposableEffect(lifecycle, view) {

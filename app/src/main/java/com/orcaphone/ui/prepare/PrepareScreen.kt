@@ -38,6 +38,9 @@ import androidx.compose.material.icons.outlined.VerticalAlignBottom
 import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import com.orcaphone.data.ThemeMode
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material3.AlertDialog
@@ -95,6 +98,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
     val busy by vm.busy.collectAsStateWithLifecycle()
     val tick by vm.viewTick.collectAsStateWithLifecycle()
     var overhang by rememberSaveable { mutableStateOf(false) }
+    val dark = com.orcaphone.ui.theme.LocalDarkTheme.current
     var sheet by remember { mutableStateOf<PrepareSheet?>(null) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -169,6 +173,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                 onClear = { vm.clearPlate() },
                 onSlice = { vm.startSlice() },
                 onCancel = { vm.cancelSlice() },
+                dark = dark,
+                onToggleDark = { vm.repos.ui.setThemeMode(if (dark) ThemeMode.LIGHT else ThemeMode.DARK) },
             )
         }
 
@@ -391,6 +397,7 @@ private fun ActionBar(
     hasObjects: Boolean, slice: SliceUiState,
     onAdd: () -> Unit, onArrange: () -> Unit, onTune: () -> Unit, onClear: () -> Unit,
     onSlice: () -> Unit, onCancel: () -> Unit,
+    dark: Boolean = false, onToggleDark: () -> Unit = {},
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
@@ -416,6 +423,11 @@ private fun ActionBar(
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More") }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (dark) "Light mode" else "Dark mode") },
+                        leadingIcon = { Icon(if (dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, null) },
+                        onClick = { menu = false; onToggleDark() },
+                    )
                     DropdownMenuItem(
                         text = { Text("Clear plate") }, enabled = hasObjects,
                         leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },

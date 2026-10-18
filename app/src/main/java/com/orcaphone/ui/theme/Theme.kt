@@ -6,6 +6,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 private val Light = lightColorScheme(
@@ -66,7 +68,12 @@ private val Dark = darkColorScheme(
     error = Color(0xFFFFB4AB),
 )
 
+/** Whether the app is currently in dark mode (user choice or system setting). */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
 @Composable
 fun OrcaTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (dark) Dark else Light, typography = Typography(), content = content)
+    CompositionLocalProvider(LocalDarkTheme provides dark) {
+        MaterialTheme(colorScheme = if (dark) Dark else Light, typography = Typography(), content = content)
+    }
 }

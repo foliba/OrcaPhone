@@ -74,6 +74,7 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
     val slice by vm.slice.collectAsStateWithLifecycle()
     val upload by vm.upload.collectAsStateWithLifecycle()
     val cloudState by vm.cloud.state.collectAsStateWithLifecycle()
+    val themeMode by vm.repos.ui.themeMode.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<PrinterConnection?>(null) }
     var confirmCancel by remember { mutableStateOf<PrinterConnection?>(null) }
     val ready = slice as? SliceUiState.Ready
@@ -151,6 +152,9 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
                     onCommand = { cmd -> if (cmd == JobCommand.CANCEL) confirmCancel = c else vm.jobCommand(c, cmd) },
                     onEdit = { editing = c },
                 )
+            }
+            item {
+                com.orcaphone.ui.components.AppearanceCard(themeMode) { vm.repos.ui.setThemeMode(it) }
             }
         }
         ExtendedFloatingActionButton(
