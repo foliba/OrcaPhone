@@ -9,12 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.automirrored.outlined.Logout
@@ -60,10 +65,12 @@ fun CloudAccountCard(
     onUploadLocal: () -> Unit,
     onAutoUpload: (Boolean) -> Unit,
     onSignOut: () -> Unit,
+    onFullResync: () -> Unit = {},
 ) {
     val s = state.session
     var menu by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
+    var details by remember { mutableStateOf(false) }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
         Column(Modifier.padding(16.dp)) {
             if (s == null) {
@@ -108,6 +115,14 @@ fun CloudAccountCard(
                     IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "Account options") }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
+                            text = { Text("Sync details") }, leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                            onClick = { menu = false; details = true },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download all presets again") }, leadingIcon = { Icon(Icons.Outlined.CloudDownload, null) },
+                            onClick = { menu = false; onFullResync() },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Sign out") }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Logout, null) },
                             onClick = { menu = false; confirmSignOut = true },
                         )
@@ -136,6 +151,30 @@ fun CloudAccountCard(
                 }
             }
         }
+    }
+    if (details) {
+        val report = state.lastReport
+        val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+        AlertDialog(
+            onDismissRequest = { details = false },
+            title = { Text("Sync details") },
+            text = {
+                Column(Modifier.androidxVerticalScroll()) {
+                    if (report == null) Text("No sync has run yet.")
+                    else Text(
+                        report.asText(), style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    report?.let { clipboard.setText(androidx.compose.ui.text.AnnotatedString(it.asText())) }
+                    details = false
+                }, enabled = report != null) { Text("Copy") }
+            },
+            dismissButton = { TextButton(onClick = { details = false }) { Text("Close") } },
+        )
     }
     if (confirmSignOut) {
         AlertDialog(
@@ -183,3 +222,7 @@ fun CloudPrintersCard(printers: List<CloudPrinter>) {
         }
     }
 }
+
+@Composable
+private fun Modifier.androidxVerticalScroll(): Modifier =
+    this.then(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()))

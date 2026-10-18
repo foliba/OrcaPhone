@@ -290,13 +290,24 @@ object OrcaPresetMapper {
         return parent + decode(kind, content)
     }
 
-    fun kindOf(content: Map<String, String>): OrcaKind? {
-        OrcaKind.fromIot(content["type"]?.trim())?.let { return it }
+    /**
+     * Preset kind of a synced profile: its "type" (also the folder-style aliases), else the kind of the
+     * system preset it inherits from, else typical keys. Like OrcaSlicer, an untyped profile is a process.
+     */
+    fun kindOf(content: Map<String, String>, catalog: OrcaCatalog? = null): OrcaKind {
+        when (content["type"]?.let { firstString(it) }?.trim()?.lowercase()) {
+            "printer", "machine", "printer_settings" -> return OrcaKind.PRINTER
+            "filament", "filament_settings" -> return OrcaKind.FILAMENT
+            "print", "process", "print_settings" -> return OrcaKind.PROCESS
+        }
+        val parent = content["inherits"]?.let { firstString(it) }?.takeIf { it.isNotBlank() }
+        if (parent != null && catalog != null) {
+            for (k in OrcaKind.entries) if (catalog.get(k, parent) != null) return k
+        }
         return when {
-            content.keys.any { it == "printable_area" || it == "machine_start_gcode" || it == "nozzle_diameter" } -> OrcaKind.PRINTER
-            content.keys.any { it.startsWith("filament_") || it == "nozzle_temperature" } -> OrcaKind.FILAMENT
-            content.keys.any { it == "layer_height" || it == "wall_loops" || it == "sparse_infill_density" } -> OrcaKind.PROCESS
-            else -> null
+            content.keys.any { it == "printable_area" || it == "machine_start_gcode" || it == "printer_model" || it.startsWith("machine_") } -> OrcaKind.PRINTER
+            content.keys.any { it.startsWith("filament_") || it == "nozzle_temperature" || it.endsWith("_plate_temp") } -> OrcaKind.FILAMENT
+            else -> OrcaKind.PROCESS
         }
     }
 

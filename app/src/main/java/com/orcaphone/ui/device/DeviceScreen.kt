@@ -107,6 +107,7 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
                     onUploadLocal = { vm.cloud.uploadLocalPresets() },
                     onAutoUpload = { vm.cloud.setAutoUpload(it) },
                     onSignOut = { vm.cloud.signOut() },
+                    onFullResync = { vm.cloud.fullResync() },
                 )
             }
             if (cloudState.session != null && cloudState.printers.isNotEmpty()) {

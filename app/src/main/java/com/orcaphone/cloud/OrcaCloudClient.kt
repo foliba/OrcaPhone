@@ -41,7 +41,14 @@ class OrcaCloudException(message: String, val httpCode: Int = 0) : IOException(m
 
 class CloudProfile(val id: String, val name: String, val content: Map<String, String>, val updatedTime: Long)
 
-class PullResult(val upserts: List<CloudProfile>, val deletes: List<String>, val nextCursor: Long)
+class PullResult(
+    val upserts: List<CloudProfile>,
+    val deletes: List<String>,
+    val nextCursor: Long,
+    val httpCode: Int = 200,
+    /** Start of the raw response, for the sync diagnostics screen. */
+    val rawSample: String = "",
+)
 
 class PushResult(val ok: Boolean, val httpCode: Int, val updatedTime: Long = 0, val conflictCode: Int = 0, val serverProfile: CloudProfile? = null, val message: String = "")
 
@@ -53,6 +60,7 @@ class CloudPrinter(val id: String, val name: String, val model: String, val onli
  * and the printer list.
  */
 class OrcaCloudClient(
+    private val apiUrl: String = API_URL,
     private val onSessionChanged: (OrcaSession?) -> Unit,
 ) {
     companion object {
@@ -205,7 +213,7 @@ class OrcaCloudClient(
     private fun call(method: String, path: String, body: String? = null): Resp {
         fun exec(): Resp {
             val token = session?.accessToken ?: throw OrcaCloudException("Not signed in", 401)
-            val b = Request.Builder().url(API_URL + path)
+            val b = Request.Builder().url(apiUrl + path)
                 .header("apikey", PUB_KEY)
                 .header("Authorization", "Bearer $token")
             val req = when (method) {
@@ -223,7 +231,12 @@ class OrcaCloudClient(
     }
 
     private fun contentMap(e: JsonElement?): Map<String, String> {
-        val o = e as? JsonObject ?: return emptyMap()
+        val o = when {
+            e is JsonObject -> e
+            // content stored as a JSON-encoded string
+            e is JsonPrimitive && e.isString -> runCatching { json.parseToJsonElement(e.content) as? JsonObject }.getOrNull()
+            else -> null
+        } ?: return emptyMap()
         return o.mapValues { (_, v) ->
             when (v) {
                 is JsonPrimitive -> if (v.isString) v.content else v.toString()
@@ -234,23 +247,34 @@ class OrcaCloudClient(
     }
 
     private fun profileFrom(o: JsonObject): CloudProfile = CloudProfile(
-        id = o.str("id").orEmpty(),
+        id = (o["id"] as? JsonPrimitive)?.contentOrNull ?: (o["setting_id"] as? JsonPrimitive)?.contentOrNull ?: "",
         name = o.str("name").orEmpty(),
-        content = contentMap(o["content"]),
+        content = contentMap(o["content"] ?: o["values"] ?: o["setting"]),
         updatedTime = (o["updated_time"] as? JsonPrimitive)?.longOrNull ?: 0,
     )
 
     /** GET /api/v1/sync/pull. [cursor] 0 = everything. */
     fun pull(cursor: Long): PullResult {
         var r = call("GET", "/api/v1/sync/pull" + if (cursor != 0L) "?cursor=$cursor" else "")
-        if (r.code == 410) r = call("GET", "/api/v1/sync/pull") // cursor too old: full resync
-        if (r.code == 304) return PullResult(emptyList(), emptyList(), cursor)
-        if (r.code != 200) throw OrcaCloudException("Sync failed (HTTP ${r.code})", r.code)
-        val o = json.parseToJsonElement(r.body).jsonObject
-        val ups = (o["upserts"] as? JsonArray)?.mapNotNull { (it as? JsonObject)?.let(::profileFrom) } ?: emptyList()
-        val dels = (o["deletes"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull } ?: emptyList()
+        var resynced = false
+        if (r.code == 410) { r = call("GET", "/api/v1/sync/pull"); resynced = true } // cursor too old: full resync
+        val sample = r.body.take(4000)
+        if (r.code == 304) return PullResult(emptyList(), emptyList(), cursor, 304, sample)
+        if (r.code != 200) throw OrcaCloudException("Sync failed (HTTP ${r.code}): ${r.body.take(200)}", r.code)
+        val root = json.parseToJsonElement(r.body)
+        // Expected: {"upserts":[…],"deletes":[…],"next_cursor":…}; also accept a "data" wrapper or a bare list.
+        val o: JsonObject = when (root) {
+            is JsonObject -> (root["data"] as? JsonObject)?.takeIf { it.containsKey("upserts") } ?: root
+            is JsonArray -> JsonObject(mapOf("upserts" to root))
+            else -> JsonObject(emptyMap())
+        }
+        val list = (o["upserts"] ?: o["profiles"] ?: o["items"] ?: (root as? JsonObject)?.get("data")) as? JsonArray
+        val ups = list?.mapNotNull { (it as? JsonObject)?.let(::profileFrom) } ?: emptyList()
+        val dels = (o["deletes"] as? JsonArray)?.mapNotNull { d ->
+            (d as? JsonPrimitive)?.contentOrNull ?: (d as? JsonObject)?.str("id")
+        } ?: emptyList()
         val next = (o["next_cursor"] as? JsonPrimitive)?.longOrNull ?: 0
-        return PullResult(ups, dels, if (r.code == 410) 0 else next)
+        return PullResult(ups, dels, if (resynced) 0 else next, r.code, sample)
     }
 
     /** POST /api/v1/sync/push (optimistic concurrency via original_updated_time). */

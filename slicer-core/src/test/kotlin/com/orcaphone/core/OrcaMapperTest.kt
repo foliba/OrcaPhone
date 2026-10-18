@@ -46,6 +46,10 @@ class OrcaMapperTest {
             "wall_loops" to "3", "some_unmapped_key" to "keep me", "version" to "2.3.0.0",
         )
         val kind = M.kindOf(content)
+        assertEquals(OrcaKind.PRINTER, M.kindOf(mapOf("inherits" to "Bambu Lab X1 Carbon 0.4 nozzle"), catalog))
+        assertEquals(OrcaKind.FILAMENT, M.kindOf(mapOf("inherits" to "Bambu PLA Basic @BBL X1C"), catalog))
+        assertEquals(OrcaKind.PRINTER, M.kindOf(mapOf("type" to "machine")))
+        assertEquals(OrcaKind.PROCESS, M.kindOf(mapOf("name" to "x")))
         assertEquals(OrcaKind.PROCESS, kind)
         val raw = M.resolve(catalog, OrcaKind.PROCESS, content)
         val p = M.toProcess(raw, "id", "My fast PETG")

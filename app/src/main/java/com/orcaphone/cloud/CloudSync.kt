@@ -30,6 +30,35 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
 
+/** What the last sync did, shown in "Sync details" to diagnose sync problems. */
+data class SyncReport(
+    val time: Long,
+    val cursorBefore: Long,
+    val cursorAfter: Long,
+    val pages: Int,
+    val httpCodes: List<Int>,
+    val received: Int,
+    val printers: Int,
+    val filaments: Int,
+    val processes: Int,
+    val deletes: Int,
+    val skipped: List<String>,
+    val pushed: Int,
+    val error: String?,
+    val rawSample: String,
+) {
+    fun asText(): String = buildString {
+        appendLine("OrcaPhone Orca Cloud sync report")
+        appendLine("time: ${java.util.Date(time)}")
+        appendLine("cursor: $cursorBefore -> $cursorAfter, pages: $pages, http: $httpCodes")
+        appendLine("received: $received (printers $printers, filaments $filaments, processes $processes), deletes: $deletes, uploaded: $pushed")
+        if (error != null) appendLine("error: $error")
+        if (skipped.isNotEmpty()) { appendLine("skipped:"); skipped.forEach { appendLine("  - $it") } }
+        appendLine("response sample:")
+        append(rawSample)
+    }
+}
+
 data class CloudState(
     val session: OrcaSession? = null,
     val syncing: Boolean = false,
@@ -39,6 +68,7 @@ data class CloudState(
     val localOnlyPresets: Int = 0,
     val printers: List<CloudPrinter> = emptyList(),
     val autoUpload: Boolean = true,
+    val lastReport: SyncReport? = null,
 )
 
 /**
@@ -47,6 +77,10 @@ data class CloudState(
  * saves and deletes of synced presets are uploaded. Also lists the account's cloud printers.
  */
 class CloudSync(context: Context, private val repos: Repositories) {
+    private companion object {
+        const val SYNC_VERSION = 3
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
     private val secure = SecureStore(File(context.filesDir, "orca_cloud_session.bin"))
@@ -83,6 +117,11 @@ class CloudSync(context: Context, private val repos: Repositories) {
     private val kinds: List<Kind<Any>> = listOf(printerKind, filamentKind, processKind).map { it as Kind<Any> }
 
     init {
+        // Sync logic changed in v3: download everything once more (an older version could save a
+        // cursor without having imported anything).
+        if (prefs.getInt("sync_version", 0) < SYNC_VERSION) {
+            prefs.edit().putLong("cursor", 0).putInt("sync_version", SYNC_VERSION).apply()
+        }
         val restored = secure.read()?.let { runCatching { json.decodeFromString(OrcaSession.serializer(), it) }.getOrNull() }
         client.restore(restored)
         _state.update { it.copy(session = restored, lastSync = prefs.getLong("last_sync", 0)) }
@@ -188,23 +227,44 @@ class CloudSync(context: Context, private val repos: Repositories) {
 
     // ------------------------------------------------------------------ sync
 
+    /** Forgets the sync cursor and downloads every preset again. */
+    fun fullResync() {
+        prefs.edit().putLong("cursor", 0).apply()
+        syncNow()
+    }
+
+    private class Tally {
+        var printers = 0; var filaments = 0; var processes = 0
+        val skipped = ArrayList<String>()
+    }
+
     fun syncNow(quiet: Boolean = false) {
         if (client.session == null) return
         scope.launch {
             if (!syncMutex.tryLock()) return@launch
             _state.update { it.copy(syncing = true, lastError = null) }
+            val cursorBefore = prefs.getLong("cursor", 0)
+            var cursor = cursorBefore
+            var pages = 0
+            var received = 0
+            var deletes = 0
+            var pushed = 0
+            val codes = ArrayList<Int>()
+            var sample = ""
+            val tally = Tally()
+            var error: String? = null
             try {
                 val cat = catalog()
                 // 1. upload local changes first so they are not overwritten by the pull
-                for (k in kinds) pushPending(k)
+                for (k in kinds) pushed += pushPending(k)
                 // 2. pull cloud changes
-                var cursor = prefs.getLong("cursor", 0)
-                var pages = 0
-                var changed = 0
                 while (pages++ < 20) {
                     val res = client.pull(cursor)
-                    if (res.upserts.isNotEmpty() || res.deletes.isNotEmpty()) apply(cat, res)
-                    changed += res.upserts.size + res.deletes.size
+                    codes.add(res.httpCode)
+                    if (sample.isEmpty()) sample = res.rawSample
+                    if (res.upserts.isNotEmpty() || res.deletes.isNotEmpty()) apply(cat, res, tally)
+                    received += res.upserts.size
+                    deletes += res.deletes.size
                     if (res.nextCursor == 0L || res.nextCursor == cursor || res.upserts.isEmpty()) {
                         if (res.nextCursor != 0L) cursor = res.nextCursor
                         break
@@ -214,30 +274,56 @@ class CloudSync(context: Context, private val repos: Repositories) {
                 prefs.edit().putLong("cursor", cursor).putLong("last_sync", System.currentTimeMillis()).apply()
                 val printers = runCatching { client.printers() }.getOrElse { _state.value.printers }
                 _state.update { it.copy(lastSync = System.currentTimeMillis(), printers = printers) }
-                if (!quiet && changed > 0) say("Orca Cloud: $changed preset change${if (changed == 1) "" else "s"} synced")
+                val imported = tally.printers + tally.filaments + tally.processes
+                when {
+                    imported > 0 && (!quiet || cursorBefore == 0L) -> say(
+                        "Orca Cloud: ${tally.printers} printer, ${tally.filaments} filament and ${tally.processes} process preset" +
+                            (if (imported == 1) "" else "s") + " synced",
+                    )
+                    cursorBefore == 0L && received == 0 -> say("Your Orca Cloud account has no synced presets yet. In OrcaSlicer, sign in and save a user preset to sync it.")
+                    tally.skipped.isNotEmpty() -> say("Orca Cloud: ${tally.skipped.size} preset(s) could not be imported. See Sync details.")
+                    !quiet && deletes > 0 -> say("Orca Cloud: $deletes preset(s) removed")
+                }
             } catch (e: Exception) {
                 Log.w("OrcaPhone", "Cloud sync failed", e)
-                _state.update { it.copy(lastError = e.message ?: e.javaClass.simpleName) }
-                if (!quiet) say("Orca Cloud sync failed: ${e.message}")
+                error = e.message ?: e.javaClass.simpleName
+                _state.update { it.copy(lastError = error) }
+                if (!quiet) say("Orca Cloud sync failed: $error")
             } finally {
-                _state.update { it.copy(syncing = false) }
+                val report = SyncReport(
+                    System.currentTimeMillis(), cursorBefore, cursor, pages, codes, received,
+                    tally.printers, tally.filaments, tally.processes, deletes, tally.skipped, pushed, error, sample,
+                )
+                _state.update { it.copy(syncing = false, lastReport = report) }
                 refreshCounts()
                 syncMutex.unlock()
             }
         }
     }
 
-    private fun apply(cat: OrcaCatalog, res: PullResult) {
+    private fun apply(cat: OrcaCatalog, res: PullResult, tally: Tally) {
         val deletes = res.deletes.toSet()
-        val byKind = res.upserts.groupBy { OrcaPresetMapper.kindOf(it.content) }
-        applyKind(printerKind, cat, byKind[OrcaKind.PRINTER].orEmpty(), deletes)
-        applyKind(filamentKind, cat, byKind[OrcaKind.FILAMENT].orEmpty(), deletes)
-        applyKind(processKind, cat, byKind[OrcaKind.PROCESS].orEmpty(), deletes)
+        val valid = res.upserts.filter { p ->
+            when {
+                p.id.isBlank() -> { tally.skipped.add("“${p.name}”: no id"); false }
+                p.content.isEmpty() -> { tally.skipped.add("“${p.name.ifBlank { p.id }}”: empty content"); false }
+                else -> true
+            }
+        }
+        val byKind = valid.groupBy { OrcaPresetMapper.kindOf(it.content, cat) }
+        tally.printers += applyKind(printerKind, cat, byKind[OrcaKind.PRINTER].orEmpty(), deletes, tally)
+        tally.filaments += applyKind(filamentKind, cat, byKind[OrcaKind.FILAMENT].orEmpty(), deletes, tally)
+        tally.processes += applyKind(processKind, cat, byKind[OrcaKind.PROCESS].orEmpty(), deletes, tally)
     }
 
-    private fun <T : Any> applyKind(k: Kind<T>, cat: OrcaCatalog, ups: List<CloudProfile>, deletes: Set<String>) {
-        val presets = ups.map { toLocal(k, cat, it) }
+    private fun <T : Any> applyKind(k: Kind<T>, cat: OrcaCatalog, ups: List<CloudProfile>, deletes: Set<String>, tally: Tally): Int {
+        val presets = ups.mapNotNull { p ->
+            runCatching { toLocal(k, cat, p) }
+                .onFailure { tally.skipped.add("“${p.name.ifBlank { p.id }}” (${k.kind.iot}): ${it.message ?: it.javaClass.simpleName}") }
+                .getOrNull()
+        }
         k.store.applyCloud(presets, deletes)
+        return presets.size
     }
 
     private fun <T : Any> toLocal(k: Kind<T>, cat: OrcaCatalog, p: CloudProfile): T {
@@ -247,16 +333,19 @@ class CloudSync(context: Context, private val repos: Repositories) {
         return k.store.withCloud(local, CloudMeta(p.id, p.updatedTime, p.content, pendingPush = false))
     }
 
-    private suspend fun <T : Any> pushPending(k: Kind<T>) {
+    private suspend fun <T : Any> pushPending(k: Kind<T>): Int {
         val pending = k.store.state.value.all.filter { k.store.cloudOf(it)?.pendingPush == true }
+        var n = 0
         for (p in pending) {
             try {
                 push(k, p)
+                n++
             } catch (e: OrcaCloudException) {
                 if (e.httpCode == 401) throw e
                 say(e.message ?: "Upload failed")
             }
         }
+        return n
     }
 
     /** Uploads one user preset (creates it in the cloud if it is not linked yet). */
