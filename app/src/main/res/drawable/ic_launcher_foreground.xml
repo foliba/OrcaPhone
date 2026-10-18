@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stylised layered print (stacked extrusion lines) with a nozzle on top. 108dp adaptive canvas, safe zone 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- nozzle -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M44,28 L64,28 L64,36 L58,36 L55,42 L53,42 L50,36 L44,36 Z" />
+    <!-- printed layers -->
+    <path android:fillColor="#FFB2DFDB"
+        android:pathData="M40,47 L68,47 A3,3 0 0 1 68,53 L40,53 A3,3 0 0 1 40,47 Z" />
+    <path android:fillColor="#FF80CBC4"
+        android:pathData="M36,55 L72,55 A3,3 0 0 1 72,61 L36,61 A3,3 0 0 1 36,55 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M32,63 L76,63 A3,3 0 0 1 76,69 L32,69 A3,3 0 0 1 32,63 Z" />
+    <path android:fillColor="#FFFFAB40"
+        android:pathData="M30,71 L78,71 A3,3 0 0 1 78,77 L30,77 A3,3 0 0 1 30,71 Z" />
+</vector>
