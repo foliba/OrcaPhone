@@ -1,9 +1,15 @@
 name: Release
 
-# Push a tag like v0.1.0 to build the APK and publish a GitHub release.
+# Push a tag like v0.1.0 (or run this workflow manually with a version) to build the APK and
+# publish a GitHub release. A manual run creates the tag on the commit it runs on.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 0.1.0"
+        required: true
 
 permissions:
   contents: write
@@ -30,7 +36,8 @@ jobs:
 
       - name: Prepare release files
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; else VERSION="${GITHUB_REF_NAME#v}"; fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p dist
           cp app/build/outputs/apk/release/*.apk "dist/OrcaPhone-${VERSION}.apk"
           # Release notes: the CHANGELOG section of this version
@@ -40,7 +47,9 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: OrcaPhone ${{ github.ref_name }}
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: OrcaPhone v${{ env.VERSION }}
           body_path: dist/notes.md
           files: dist/*.apk
-          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          prerelease: ${{ startsWith(env.VERSION, '0.') }}
