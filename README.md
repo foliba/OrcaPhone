@@ -3,6 +3,11 @@
 A native Android slicer for FDM 3D printers, inspired by [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) and designed for touch screens.
 Import a model, tweak a few settings with your thumb, slice it on the phone, inspect every layer, and send it to your printer.
 
+## Download
+
+Get the latest APK from the [Releases](../../releases) page (current: **0.1.0**, preview) and install it
+on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
+
 ## Features
 
 **Prepare**
@@ -61,6 +66,9 @@ Requirements: JDK 17, Android SDK (API 35).
 ./gradlew :slicer-core:test          # engine unit tests (plain JVM)
 ./gradlew :app:assembleDebug         # app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Releases: push a tag `vX.Y.Z` and `.github/workflows/release.yml` builds the APK and publishes a GitHub release
+with the matching CHANGELOG section.
 
 Every push runs the GitHub Actions workflow in `.github/workflows/android.yml`, which runs the tests and uploads the
 debug and release APKs as the `OrcaPhone-apk` artifact.
