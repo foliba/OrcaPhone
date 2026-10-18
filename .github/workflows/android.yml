@@ -27,6 +27,15 @@ jobs:
       - name: Slicer core unit tests
         run: ./gradlew :slicer-core:test
 
+      - name: Printables live API check
+        # Talks to printables.com, so it must not block the build when the site is down or changes.
+        continue-on-error: true
+        env:
+          PRINTABLES_LIVE: "1"
+        run: |
+          set -o pipefail
+          ./gradlew :slicer-core:test --tests '*PrintablesTest.liveBenchy' --rerun -i 2>&1 | { grep -E "Live model|liveBenchy|Exception|Error" || true; }
+
       - name: Build debug APK
         run: |
           set -o pipefail

@@ -106,4 +106,80 @@ object Arranger {
         }
         return result
     }
+
+    /**
+     * Shelf-packs objects onto as many beds as needed. Every returned bed holds objects that fit inside it,
+     * except an object that is larger than the bed on its own, which gets a bed to itself.
+     * Each bed's layout is centred. Objects keep their relative order within a bed.
+     */
+    fun arrangeOnBeds(objects: List<PlateObject>, bedW: Double, bedD: Double, spacing: Double = 6.0): List<List<PlateObject>> {
+        if (objects.isEmpty()) return emptyList()
+        val eps = 1e-6
+        class Row(val y0: Double, val h: Double) {
+            var cursor = 0.0
+            val items = ArrayList<Pair<Int, Double>>() // object index, left x within row
+        }
+        class Bin(val closed: Boolean = false) { val rows = ArrayList<Row>(); val used get() = rows.lastOrNull()?.let { it.y0 + it.h } ?: 0.0 }
+        val order = objects.indices.sortedWith(compareByDescending<Int> { objects[it].size.y }.thenByDescending { objects[it].size.x })
+        val bins = ArrayList<Bin>()
+        for (i in order) {
+            val s = objects[i].size
+            var placed = false
+            for (bin in bins) {
+                if (bin.closed) continue
+                val row = bin.rows.firstOrNull { s.y <= it.h + eps && it.cursor + s.x <= bedW + eps }
+                    ?: run {
+                        val y0 = bin.used + spacing
+                        if (s.x <= bedW + eps && y0 + s.y <= bedD + eps) Row(y0, s.y).also { bin.rows.add(it) } else null
+                    }
+                if (row != null) {
+                    row.items.add(i to row.cursor); row.cursor += s.x + spacing
+                    placed = true; break
+                }
+            }
+            if (!placed) {
+                val bin = Bin(closed = s.x > bedW + eps || s.y > bedD + eps); val row = Row(0.0, s.y)
+                row.items.add(i to 0.0); row.cursor = s.x + spacing
+                bin.rows.add(row); bins.add(bin)
+            }
+        }
+        return bins.map { bin ->
+            val top = (bedD + bin.used) / 2
+            val placed = HashMap<Int, PlateObject>()
+            for (row in bin.rows) {
+                val x0 = (bedW - (row.cursor - spacing)) / 2
+                for ((idx, left) in row.items) {
+                    val o = objects[idx]
+                    placed[idx] = o.movedTo(x0 + left + o.size.x / 2, top - row.y0 - row.h / 2)
+                }
+            }
+            placed.keys.sorted().map { placed.getValue(it) }
+        }
+    }
+
+    /**
+     * Finds the free spot closest to the bed centre for an object of footprint [sx] x [sy] that keeps [spacing]
+     * from [existing] objects, or null if there is none.
+     */
+    fun findFreeSpot(existing: List<PlateObject>, sx: Double, sy: Double, bedW: Double, bedD: Double, spacing: Double = 6.0): Pair<Double, Double>? {
+        if (sx > bedW || sy > bedD) return null
+        val boxes = existing.map { it.worldBounds }
+        val step = 4.0
+        val candidates = ArrayList<Pair<Double, Double>>()
+        var y = sy / 2
+        while (y <= bedD - sy / 2 + 1e-9) {
+            var x = sx / 2
+            while (x <= bedW - sx / 2 + 1e-9) { candidates.add(x to y); x += step }
+            y += step
+        }
+        candidates.add(bedW / 2 to bedD / 2)
+        val cx = bedW / 2; val cy = bedD / 2
+        candidates.sortBy { (x, y) -> (x - cx) * (x - cx) + (y - cy) * (y - cy) }
+        return candidates.firstOrNull { (x, y) ->
+            boxes.none { b ->
+                x - sx / 2 < b.maxX + spacing && x + sx / 2 > b.minX - spacing &&
+                    y - sy / 2 < b.maxY + spacing && y + sy / 2 > b.minY - spacing
+            }
+        }
+    }
 }

@@ -42,6 +42,10 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import com.orcaphone.data.ThemeMode
 import androidx.compose.material.icons.outlined.CropFree
+import androidx.compose.material.icons.outlined.AddBox
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.SwapHoriz
+import com.orcaphone.ui.components.BedBar
 import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -84,7 +88,7 @@ import com.orcaphone.ui.components.fmt
 import com.orcaphone.ui.settings.EditorTarget
 import kotlin.math.cos
 
-enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY }
+enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY, LINK }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,6 +101,11 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
     val slice by vm.slice.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val tick by vm.viewTick.collectAsStateWithLifecycle()
+    val beds by vm.beds.collectAsStateWithLifecycle()
+    val activeBed by vm.activeBed.collectAsStateWithLifecycle()
+    val remote by vm.remote.collectAsStateWithLifecycle()
+    val pending by vm.pending.collectAsStateWithLifecycle()
+    var confirmDeleteBed by remember { mutableStateOf<Int?>(null) }
     var overhang by rememberSaveable { mutableStateOf(false) }
     val dark = com.orcaphone.ui.theme.LocalDarkTheme.current
     var sheet by remember { mutableStateOf<PrepareSheet?>(null) }
@@ -134,6 +143,31 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                 process = process.working.name, processDirty = process.dirty,
                 onClick = { sheet = it },
             )
+            if (beds.size > 1) {
+                BedBar(
+                    count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
+                    chipLabel = { i -> "Bed ${i + 1} · ${beds[i].objects.size}" },
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) {
+                    var bedMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { bedMenu = true }) { Icon(Icons.Outlined.MoreVert, "Bed options") }
+                        DropdownMenu(expanded = bedMenu, onDismissRequest = { bedMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Add empty bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                                onClick = { bedMenu = false; vm.addBed() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete bed ${activeBed + 1}") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                onClick = {
+                                    bedMenu = false
+                                    if (objects.isEmpty()) vm.deleteBed(activeBed) else confirmDeleteBed = activeBed
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         ViewControls(
@@ -143,7 +177,14 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
         )
 
         if (objects.isEmpty() && busy == null) {
-            EmptyPlate(onImport = openImport, onSample = { vm.addSample(it) }, modifier = Modifier.align(Alignment.Center))
+            if (beds.size > 1) {
+                EmptyBed(activeBed + 1, onDelete = { vm.deleteBed(activeBed) }, modifier = Modifier.align(Alignment.Center))
+            } else {
+                EmptyPlate(
+                    onImport = openImport, onLink = { sheet = PrepareSheet.LINK }, onSample = { vm.addSample(it) },
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
 
         Column(
@@ -162,6 +203,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                     onCenter = { vm.centerSelected() },
                     onCopy = { vm.duplicateSelected() },
                     onDelete = { vm.deleteSelected() },
+                    bedCount = beds.size, activeBed = activeBed,
+                    onMoveToBed = { vm.moveSelectedToBed(it) },
                 )
             }
             ActionBar(
@@ -169,6 +212,9 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                 slice = slice,
                 onAdd = { sheet = PrepareSheet.ADD },
                 onArrange = { vm.arrange() },
+                onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
+                onAddBed = { vm.addBed() },
+                sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
                 onTune = { sheet = PrepareSheet.QUICK },
                 onClear = { vm.clearPlate() },
                 onSlice = { vm.startSlice() },
@@ -241,6 +287,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
         }
         PrepareSheet.ADD -> AddSheet(
             onImport = { sheet = null; openImport() },
+            onLink = { sheet = PrepareSheet.LINK },
             onSample = { sheet = null; vm.addSample(it) },
             onDismiss = { sheet = null },
         )
@@ -250,7 +297,69 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
             onError = { vm.notify(it) },
             onDismiss = { sheet = null },
         )
+        PrepareSheet.LINK -> com.orcaphone.ui.importer.ModelLinkDialog(
+            onLookUp = { sheet = null; vm.openModelLink(it) },
+            onDismiss = { sheet = null },
+        )
         null -> Unit
+    }
+
+    remote?.let { r ->
+        com.orcaphone.ui.importer.RemoteImportScreen(
+            state = r,
+            loadPreview = { vm.repos.remoteModels.preview(it) },
+            isMetered = { vm.isMeteredNetwork() },
+            onImport = { vm.importRemoteFiles(it) },
+            onCancelDownload = { vm.cancelRemote() },
+            onClose = { vm.closeRemote() },
+            onTryAnotherLink = { vm.closeRemote(); sheet = PrepareSheet.LINK },
+        )
+    }
+
+    pending?.let { pd ->
+        when (pd.step) {
+            com.orcaphone.ui.PendingPlacement.Step.REPLACE_OR_ADD -> AlertDialog(
+                onDismissRequest = { vm.cancelPlacement() },
+                title = { Text("Your plate isn't empty") },
+                text = {
+                    val n = pd.objects.size
+                    Text("Replace everything on the plate with the $n imported object${if (n == 1) "" else "s"}, or add ${if (n == 1) "it" else "them"} to bed ${activeBed + 1}?")
+                },
+                confirmButton = { TextButton(onClick = { vm.answerReplace(false) }) { Text("Add to plate") } },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = { vm.cancelPlacement() }) { Text("Cancel") }
+                        TextButton(onClick = { vm.answerReplace(true) }) { Text("Replace plate") }
+                    }
+                },
+            )
+            com.orcaphone.ui.PendingPlacement.Step.OVERSIZE -> AlertDialog(
+                onDismissRequest = { vm.cancelPlacement() },
+                icon = { Icon(Icons.Outlined.OpenInFull, null) },
+                title = { Text("Too big for your printer") },
+                text = {
+                    val names = vm.oversizeNames(pd)
+                    Text(
+                        names.take(5).joinToString("\n") { "• $it" } + (if (names.size > 5) "\n• and ${names.size - 5} more" else "") +
+                            "\n\n${if (names.size == 1) "This is" else "These are"} larger than the build volume of ${p.name} " +
+                            "(${fmt(p.bedWidth, 0)} × ${fmt(p.bedDepth, 0)} × ${fmt(p.maxHeight, 0)} mm). " +
+                            "Scale down to fit, or keep the original size and place ${if (names.size == 1) "it" else "each"} on its own bed?",
+                    )
+                },
+                confirmButton = { TextButton(onClick = { vm.answerOversize(true) }) { Text("Scale to fit") } },
+                dismissButton = { TextButton(onClick = { vm.answerOversize(false) }) { Text("Keep size") } },
+            )
+        }
+    }
+
+    confirmDeleteBed?.let { i ->
+        AlertDialog(
+            onDismissRequest = { confirmDeleteBed = null },
+            title = { Text("Delete bed ${i + 1}?") },
+            text = { Text("The ${beds.getOrNull(i)?.objects?.size ?: 0} objects on this bed will be removed.") },
+            confirmButton = { TextButton(onClick = { confirmDeleteBed = null; vm.deleteBed(i) }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { confirmDeleteBed = null }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -327,7 +436,26 @@ private fun ViewControls(
 }
 
 @Composable
-private fun EmptyPlate(onImport: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyBed(number: Int, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier.padding(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)),
+    ) {
+        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Bed $number is empty", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(4.dp))
+            Text("Add a model, or move objects here from another bed with Move to bed.", style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(onClick = onDelete) {
+                Icon(Icons.Outlined.DeleteOutline, null); Spacer(Modifier.width(8.dp)); Text("Delete this bed")
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyPlate(onImport: () -> Unit, onLink: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier.padding(32.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)),
@@ -344,6 +472,10 @@ private fun EmptyPlate(onImport: () -> Unit, onSample: (AppViewModel.Sample) -> 
                 Icon(Icons.Outlined.FileOpen, null); Spacer(Modifier.width(8.dp)); Text("Import model")
             }
             Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onLink, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Link, null); Spacer(Modifier.width(8.dp)); Text("Printables link")
+            }
+            Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = { onSample(AppViewModel.Sample.CUBE) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.Category, null); Spacer(Modifier.width(8.dp)); Text("Add calibration cube")
             }
@@ -356,6 +488,7 @@ private fun ObjectPanel(
     name: String, size: String, outside: Boolean,
     onRotate: () -> Unit, onScale: () -> Unit, onLayFlat: () -> Unit, onCenter: () -> Unit,
     onCopy: () -> Unit, onDelete: () -> Unit,
+    bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f))) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -367,6 +500,22 @@ private fun ObjectPanel(
                         style = MaterialTheme.typography.bodySmall,
                         color = if (outside) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                var moveMenu by remember { mutableStateOf(false) }
+                Box {
+                    TextButton(onClick = { moveMenu = true }) {
+                        Icon(Icons.Outlined.SwapHoriz, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Move to bed")
+                    }
+                    DropdownMenu(expanded = moveMenu, onDismissRequest = { moveMenu = false }) {
+                        for (i in 0 until bedCount) {
+                            if (i == activeBed) continue
+                            DropdownMenuItem(text = { Text("Bed ${i + 1}") }, onClick = { moveMenu = false; onMoveToBed(i) })
+                        }
+                        DropdownMenuItem(
+                            text = { Text("New bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                            onClick = { moveMenu = false; onMoveToBed(null) },
+                        )
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -397,6 +546,7 @@ private fun ActionBar(
     hasObjects: Boolean, slice: SliceUiState,
     onAdd: () -> Unit, onArrange: () -> Unit, onTune: () -> Unit, onClear: () -> Unit,
     onSlice: () -> Unit, onCancel: () -> Unit,
+    onArrangeBed: (() -> Unit)? = null, onAddBed: () -> Unit = {}, sliceLabel: String = "Slice plate",
     dark: Boolean = false, onToggleDark: () -> Unit = {},
 ) {
     Surface(
@@ -417,7 +567,24 @@ private fun ActionBar(
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
-            IconButton(onClick = onArrange, enabled = hasObjects) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
+            var arrangeMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { if (onArrangeBed != null) arrangeMenu = true else onArrange() },
+                    enabled = hasObjects || onArrangeBed != null,
+                ) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
+                DropdownMenu(expanded = arrangeMenu, onDismissRequest = { arrangeMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Arrange all beds") }, leadingIcon = { Icon(Icons.Outlined.AutoAwesomeMosaic, null) },
+                        onClick = { arrangeMenu = false; onArrange() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Arrange this bed only") }, leadingIcon = { Icon(Icons.Outlined.CropFree, null) },
+                        enabled = hasObjects,
+                        onClick = { arrangeMenu = false; onArrangeBed?.invoke() },
+                    )
+                }
+            }
             IconButton(onClick = onTune) { Icon(Icons.Outlined.Tune, "Quick settings") }
             var menu by remember { mutableStateOf(false) }
             Box {
@@ -429,7 +596,12 @@ private fun ActionBar(
                         onClick = { menu = false; onToggleDark() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Clear plate") }, enabled = hasObjects,
+                        text = { Text("Add empty bed") },
+                        leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                        onClick = { menu = false; onAddBed() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
                         leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
                         onClick = { menu = false; onClear() },
                     )
@@ -446,7 +618,7 @@ private fun ActionBar(
             ) {
                 Icon(Icons.AutoMirrored.Outlined.ViewList, null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (stale) "Re-slice" else "Slice plate", fontWeight = FontWeight.SemiBold)
+                Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
             }
         }
     }

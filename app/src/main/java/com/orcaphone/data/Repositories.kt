@@ -36,6 +36,7 @@ class Repositories(context: Context) {
     val hostClient = PrinterHostClient()
     val ui = UiSettings(context)
     val cloud = com.orcaphone.cloud.CloudSync(context.applicationContext, this)
+    val remoteModels = com.orcaphone.models.RemoteModelClient(context.applicationContext)
 }
 
 class ConnectionStore(private val file: File) {
