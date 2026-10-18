@@ -171,8 +171,21 @@ object OrcaPresetMapper {
         Field("initial_layer_acceleration", Enc.VALUE, { p, v -> p.copy(initialLayerAcceleration = num(v)) }, { f(it.initialLayerAcceleration) }),
         Field("travel_acceleration", Enc.VALUE, { p, v -> p.copy(travelAcceleration = num(v)) }, { f(it.travelAcceleration) }),
         Field("enable_support", Enc.VALUE, { p, v -> p.copy(enableSupport = bool(v)) }, { b(it.enableSupport) }),
-        Field("support_type", Enc.VALUE, { p, v -> p.copy(supportType = if (v.trim().startsWith("tree")) SupportType.TREE else SupportType.NORMAL) },
-            { if (it.supportType == SupportType.TREE) "tree(auto)" else "normal(auto)" }),
+        Field("support_type", Enc.VALUE, { p, v ->
+            // OrcaSlicer: tree supports with the "default" or "organic" style are organic
+            val tree = v.trim().startsWith("tree")
+            p.copy(supportType = if (!tree) SupportType.NORMAL else if (p.supportType == SupportType.TREE) SupportType.TREE else SupportType.ORGANIC)
+        }, { if (it.supportType == SupportType.NORMAL) "normal(auto)" else "tree(auto)" }),
+        Field("support_style", Enc.VALUE, { p, v ->
+            if (p.supportType == SupportType.NORMAL) p
+            else p.copy(supportType = if (v.trim().startsWith("tree_")) SupportType.TREE else SupportType.ORGANIC)
+        }, { when (it.supportType) { SupportType.TREE -> "tree_slim"; SupportType.ORGANIC -> "organic"; SupportType.NORMAL -> "default" } }),
+        Field("tree_support_branch_angle_organic", Enc.VALUE, { p, v -> p.copy(organicBranchAngle = num(v)) }, { f(it.organicBranchAngle) }),
+        Field("tree_support_angle_slow", Enc.VALUE, { p, v -> p.copy(organicPreferredAngle = num(v)) }, { f(it.organicPreferredAngle) }),
+        Field("tree_support_tip_diameter", Enc.VALUE, { p, v -> p.copy(organicTipDiameter = num(v)) }, { f(it.organicTipDiameter) }),
+        Field("tree_support_branch_diameter_organic", Enc.VALUE, { p, v -> p.copy(organicBranchDiameter = num(v)) }, { f(it.organicBranchDiameter) }),
+        Field("tree_support_branch_diameter_angle", Enc.VALUE, { p, v -> p.copy(organicDiameterAngle = num(v)) }, { f(it.organicDiameterAngle) }),
+        Field("tree_support_top_rate", Enc.VALUE, { p, v -> p.copy(organicBranchDensity = pct(v)) }, { f(it.organicBranchDensity) + "%" }),
         Field("tree_support_branch_angle", Enc.VALUE, { p, v -> p.copy(treeBranchAngle = num(v)) }, { f(it.treeBranchAngle) }),
         Field("tree_support_branch_diameter", Enc.VALUE, { p, v -> p.copy(treeBranchDiameter = num(v)) }, { f(it.treeBranchDiameter) }),
         Field("support_threshold_angle", Enc.VALUE, { p, v -> num(v).let { a -> if (a > 0) p.copy(supportThresholdAngle = a) else p } },

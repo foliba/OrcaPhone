@@ -237,7 +237,7 @@ fun QuickSettingsSheet(
                             selected = process.supportType == t,
                             onClick = { onChange { it.copy(supportType = t) } },
                             shape = SegmentedButtonDefaults.itemShape(i, SupportType.entries.size),
-                        ) { Text(if (t == SupportType.TREE) "Tree" else "Normal") }
+                        ) { Text(when (t) { SupportType.NORMAL -> "Normal"; SupportType.TREE -> "Tree"; SupportType.ORGANIC -> "Organic" }) }
                     }
                 }
                 SwitchRow("On build plate only", "Never place supports on the model", process.supportOnBuildPlateOnly) { v ->

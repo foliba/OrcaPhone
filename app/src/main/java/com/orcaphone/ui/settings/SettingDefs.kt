@@ -145,14 +145,28 @@ object ProcessSettings {
                     "Support", listOf(
                         Setting.Toggle("Enable support", { it.enableSupport }, { p, v -> p.copy(enableSupport = v) }),
                         Setting.Choice("Type", SupportType.entries, { it.label }, { it.supportType }, { p, v -> p.copy(supportType = v) },
-                            "Tree supports use less material, touch the model in fewer places and break off more easily."),
+                            "Organic trees (OrcaSlicer's default) use the least material, touch the model in few places and break off easily."),
                         Setting.Number("Threshold angle", "°", { it.supportThresholdAngle }, { p, v -> p.copy(supportThresholdAngle = v) }, 1.0, 89.0, 0,
                             "Surfaces flatter than this angle (from horizontal) get support."),
                         Setting.Toggle("On build plate only", { it.supportOnBuildPlateOnly }, { p, v -> p.copy(supportOnBuildPlateOnly = v) }),
                     ),
                 ),
                 SettingGroup<ProcessProfile>(
-                    "Tree supports", listOf(
+                    "Organic tree supports", listOf(
+                        Setting.Number("Branch angle", "°", { it.organicBranchAngle }, { p, v -> p.copy(organicBranchAngle = v) }, 5.0, 60.0, 0,
+                            "Maximum lean of branches avoiding the model."),
+                        Setting.Number("Preferred branch angle", "°", { it.organicPreferredAngle }, { p, v -> p.copy(organicPreferredAngle = v) }, 5.0, 85.0, 0,
+                            "Lean used to merge branches when nothing is in the way. Lower = more vertical and stable."),
+                        Setting.Number("Tip diameter", "mm", { it.organicTipDiameter }, { p, v -> p.copy(organicTipDiameter = v) }, 0.1, 10.0, 2),
+                        Setting.Number("Branch diameter", "mm", { it.organicBranchDiameter }, { p, v -> p.copy(organicBranchDiameter = v) }, 1.0, 10.0, 1),
+                        Setting.Number("Branch diameter angle", "°", { it.organicDiameterAngle }, { p, v -> p.copy(organicDiameterAngle = v) }, 0.0, 15.0, 1,
+                            "Branches thicken towards the bottom at this angle for stability."),
+                        Setting.Number("Branch density", "%", { it.organicBranchDensity }, { p, v -> p.copy(organicBranchDensity = v) }, 5.0, 35.0, 0,
+                            "How densely tips cover the overhang. Prefer interface layers over a high density."),
+                    ),
+                ),
+                SettingGroup<ProcessProfile>(
+                    "Tree supports (non-organic)", listOf(
                         Setting.Number("Branch angle", "°", { it.treeBranchAngle }, { p, v -> p.copy(treeBranchAngle = v) }, 5.0, 75.0, 0,
                             "How far branches may lean from vertical to avoid the model and join others."),
                         Setting.Number("Branch diameter", "mm", { it.treeBranchDiameter }, { p, v -> p.copy(treeBranchDiameter = v) }, 1.0, 20.0, 1,

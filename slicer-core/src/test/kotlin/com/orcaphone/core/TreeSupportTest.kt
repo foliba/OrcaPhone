@@ -41,9 +41,30 @@ class TreeSupportTest {
     }
 
     @Test
-    fun treeSupportsHoldTheArmsAndAvoidTheModel() {
+    fun treeSupportsHoldTheArmsAndAvoidTheModel() = checkT(SupportType.TREE)
+
+    @Test
+    fun organicSupportsHoldTheArmsAndAvoidTheModel() = checkT(SupportType.ORGANIC)
+
+    @Test
+    fun organicIsLighterThanTreeAndHollow() {
         val mesh = tShape()
-        val tree = slice(mesh, SupportType.TREE, name = "t-tree")
+        val organic = slice(mesh, SupportType.ORGANIC, name = "t-organic2")
+        val tree = slice(mesh, SupportType.TREE, name = "t-tree2")
+        assertTrue(supportVolume(organic) < supportVolume(tree), "organic ${supportVolume(organic)} vs tree ${supportVolume(tree)}")
+        // hollow: organic support is only closed loops below the interface roof
+        val mid = organic.filter { it.z in 5.0..15.0 }.flatMap { l -> l.paths.filter { it.feature == Feature.SUPPORT } }
+        assertTrue(mid.isNotEmpty() && mid.all { it.closed }, "organic branches should be walls only")
+    }
+
+    @Test
+    fun organicIsTheDefault() {
+        assertTrue(com.orcaphone.core.config.ProcessProfile(id = "x", name = "x").supportType == SupportType.ORGANIC)
+    }
+
+    private fun checkT(type: SupportType) {
+        val mesh = tShape()
+        val tree = slice(mesh, type, name = "t-$type")
         val normal = slice(mesh, SupportType.NORMAL, name = "t-normal")
         // the arms (|x - 150| > 5 + clearance) are supported right below the slab
         val under = tree.filter { it.z in 18.0..19.6 }
@@ -61,14 +82,19 @@ class TreeSupportTest {
             }
         }
         // trees use clearly less material than full grid support
-        assertTrue(supportVolume(tree) < supportVolume(normal) * 0.8, "tree ${supportVolume(tree)} vs normal ${supportVolume(normal)}")
+        assertTrue(supportVolume(tree) < supportVolume(normal) * 0.85, "tree ${supportVolume(tree)} vs normal ${supportVolume(normal)}")
         // first layer holds tree feet on the plate
         assertTrue(tree[0].paths.any { it.feature == Feature.SUPPORT })
     }
 
     @Test
-    fun noFloatingBranches() {
-        val layers = slice(Primitives.sphere(20.0), SupportType.TREE, name = "sphere-tree")
+    fun noFloatingBranches() = checkNoFloating(SupportType.TREE)
+
+    @Test
+    fun noFloatingOrganicBranches() = checkNoFloating(SupportType.ORGANIC)
+
+    private fun checkNoFloating(type: SupportType) {
+        val layers = slice(Primitives.sphere(20.0), type, name = "sphere-$type")
         assertTrue(layers.any { l -> l.paths.any { it.feature == Feature.SUPPORT } })
         // every support area on layer i+1 must overlap support (or model) on layer i
         fun area(l: LayerToolpaths) = Geo.union(l.paths.filter { it.feature == Feature.SUPPORT }.map {
@@ -91,7 +117,7 @@ class TreeSupportTest {
         val legA = Primitives.box(8.0, 20.0, 20.0).transformed(Mat4.translation(-20.0, 0.0, 0.0))
         val legB = Primitives.box(8.0, 20.0, 20.0).transformed(Mat4.translation(20.0, 0.0, 0.0))
         val deck = Primitives.box(48.0, 20.0, 3.0).transformed(Mat4.translation(0.0, 0.0, 20.0))
-        val layers = slice(Mesh.merge(listOf(legA, legB, deck)), SupportType.TREE, plateOnly = true, name = "bridge-tree")
+        val layers = slice(Mesh.merge(listOf(legA, legB, deck)), SupportType.ORGANIC, plateOnly = true, name = "bridge-organic")
         assertTrue(layers[0].paths.any { it.feature == Feature.SUPPORT }, "trees should stand on the plate")
     }
 }

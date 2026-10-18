@@ -9,9 +9,9 @@ import kotlin.math.tan
 
 /**
  * Support areas for one layer: [base] gets sparse lines, [interfaceArea] dense lines right under the model.
- * Tree supports set [walls] so every branch also gets an outline loop.
+ * Tree supports print up to [walls] outline loops per branch; organic branches are hollow ([infill] = false).
  */
-class SupportLayer(val base: Geometry, val interfaceArea: Geometry, val walls: Boolean = false)
+class SupportLayer(val base: Geometry, val interfaceArea: Geometry, val walls: Int = 0, val infill: Boolean = true)
 
 /**
  * "Normal" (grid-style) support: overhangs are detected by comparing each layer with the

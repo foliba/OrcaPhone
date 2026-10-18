@@ -128,7 +128,7 @@ class Slicer(
                 progress.update("Generating supports", 0.45f)
                 val heights = DoubleArray(n) { tops[it] - bottoms[it] }
                 val onProgress: (Float) -> Unit = { progress.update("Generating supports", 0.45f + 0.15f * it) }
-                val sup = if (p.supportType == SupportType.TREE)
+                val sup = if (p.supportType != SupportType.NORMAL)
                     TreeSupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress)
                 else SupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress)
                 for (i in 0 until n) L[i].support = sup[i]
@@ -271,18 +271,25 @@ class Slicer(
             val supSpeed = if (first) p.initialLayerSpeed else p.supportSpeed
             val ifSpeed = if (first) p.initialLayerSpeed else p.supportInterfaceSpeed
             if (!s.base.isEmpty) {
-                // tree branches: an outline per branch, then sparse lines inside the thicker ones
-                val fill = if (s.walls) {
-                    val loops = Geo.loops(Geo.offset(s.base, -w / 2)).toMutableList()
+                // tree branches: outline loops per branch (inner loop only where the branch is wide enough)
+                val fill = if (s.walls > 0) {
+                    val loops = ArrayList<DoubleArray>()
+                    var ring = Geo.offset(s.base, -w / 2)
+                    for (k in 0 until s.walls) {
+                        if (ring.isEmpty) break
+                        loops.addAll(Geo.loops(ring))
+                        // further walls only for thick branches/trunks (OrcaSlicer's automatic wall count)
+                        ring = Geo.multi(Geo.polygons(Geo.offset(ring, -spacing(w, h))).filter { it.area > PI * 2.0 * 2.0 })
+                    }
                     while (loops.isNotEmpty()) {
                         val l = loops.minByOrNull { nearestDist(it, cx, cy) }!!
                         loops.remove(l)
                         add(seamed(ToolPath(Feature.SUPPORT, l, true, w, supSpeed), cx, cy, SeamPosition.NEAREST))
                     }
-                    Geo.offset(s.base, -w)
+                    if (s.infill) Geo.offset(s.base, -w * s.walls) else Geo.EMPTY
                 } else s.base
                 if (!fill.isEmpty) {
-                    val lines = Infill.lines(fill, max(p.supportBaseSpacing, w), if (s.walls && i % 2 == 1) 90.0 else 0.0, 0.0, w)
+                    val lines = Infill.lines(fill, max(p.supportBaseSpacing, w), if (s.walls > 0 && i % 2 == 1) 90.0 else 0.0, 0.0, w)
                     for (pl in Infill.chain(lines, cx, cy, fill, p.supportBaseSpacing * 1.6)) {
                         add(ToolPath(Feature.SUPPORT, pl, false, w, supSpeed))
                     }

@@ -30,7 +30,7 @@ class OrcaMapperTest {
         assertEquals(220, pla.nozzleTemp); assertEquals(55, pla.bedTemp); assertEquals(21.0, pla.maxVolumetricSpeed)
         assertEquals(0.0, pla.retractionLengthOverride) // "nil"
         val std = M.toProcess(c.get(OrcaKind.PROCESS, "0.20mm Standard @BBL X1C")!!, "p", "Std")
-        assertEquals(com.orcaphone.core.config.SupportType.TREE, std.supportType)
+        assertEquals(com.orcaphone.core.config.SupportType.ORGANIC, std.supportType)
         assertEquals(0.2, std.layerHeight); assertEquals(15.0, std.sparseInfillDensity); assertEquals(200.0, std.outerWallSpeed)
         // every mapped printer/process converts without throwing
         for ((name, v) in c.entries(OrcaKind.PRINTER)) M.toPrinter(v, name, name).also { assertTrue(it.bedWidth > 0, name) }

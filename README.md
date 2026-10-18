@@ -19,8 +19,9 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 - Walls with Orca flow spacing, inner/outer order, aligned / back / nearest / random seams
 - Top/bottom shell detection, monotonic or concentric surfaces, ironing
 - Sparse infill: grid, rectilinear, triangles, cubic, gyroid, concentric
-- Normal (grid) and tree supports: threshold angle, Z/XY gaps, interface roofs, "build plate only";
-  tree branches lean up to the branch angle around the model and merge into trunks
+- Organic tree supports (default, like OrcaSlicer), plain tree and normal (grid) supports: threshold angle,
+  Z/XY gaps, interface roofs, "build plate only". Organic branches start from thin tips, lean around the
+  model, merge, are smoothed into curves, thicken towards the bottom and are printed hollow
 - Skirt, brim, elephant-foot compensation, spiral vase mode
 - G-code for Marlin / Klipper / RepRapFirmware: relative E, retraction + Z-hop, travel without retraction inside parts, accelerations (M204), volumetric speed limit, min-layer-time slowdown and fan control, M73 progress, Klipper layer info, `;TYPE:` / `;LAYER_CHANGE` comments compatible with other viewers
 - Look-ahead (junction-deviation) time estimate, filament length/weight/cost, time per feature
@@ -75,8 +76,7 @@ app/           Android app (Jetpack Compose + Material 3, OpenGL ES 3)
 ```
 
 ## Limitations
-OrcaPhone is a from-scratch Kotlin slicer, not a port of OrcaSlicer's C++ engine. Not (yet) supported: organic (smoothed) trees,
-bridge detection, arachne variable-width walls, multi-material, variable layer height, modifiers/per-object settings,
+OrcaPhone is a from-scratch Kotlin slicer, not a port of OrcaSlicer's C++ engine. Not (yet) supported: bridge detection, arachne variable-width walls, multi-material, variable layer height, modifiers/per-object settings,
 Bambu Lab network printing (proprietary protocol — save the G-code instead), and OrcaSlicer's scripted G-code expressions
 (`{if …}` blocks; simple `[placeholder]` / `{placeholder}` values are supported).
 

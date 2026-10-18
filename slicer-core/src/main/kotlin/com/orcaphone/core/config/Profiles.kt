@@ -44,6 +44,7 @@ enum class WallOrder(val label: String) {
 enum class SupportType(val label: String) {
     NORMAL("Normal"),
     TREE("Tree"),
+    ORGANIC("Organic tree"),
 }
 
 @Serializable
@@ -185,11 +186,21 @@ data class ProcessProfile(
     val travelAcceleration: Double = 6000.0,
     // Support
     val enableSupport: Boolean = false,
-    val supportType: SupportType = SupportType.NORMAL,
+    val supportType: SupportType = SupportType.ORGANIC,
     /** Tree supports: maximum branch lean from vertical (degrees). */
     val treeBranchAngle: Double = 40.0,
     /** Tree supports: branch diameter (mm); merged trunks may grow up to twice this. */
     val treeBranchDiameter: Double = 5.0,
+    // Organic tree supports (OrcaSlicer defaults)
+    val organicBranchAngle: Double = 40.0,
+    /** Lean used when branches move only to merge, not to avoid the model. */
+    val organicPreferredAngle: Double = 25.0,
+    val organicTipDiameter: Double = 0.8,
+    val organicBranchDiameter: Double = 2.0,
+    /** Branches thicken towards the bottom at this angle. */
+    val organicDiameterAngle: Double = 5.0,
+    /** Share of the overhang covered by branch tips (%). */
+    val organicBranchDensity: Double = 30.0,
     val supportThresholdAngle: Double = 30.0,
     val supportOnBuildPlateOnly: Boolean = false,
     val supportTopZDistance: Double = 0.2,
