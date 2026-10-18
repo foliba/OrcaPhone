@@ -1,3 +1,6 @@
+# Keep class names readable so error messages and crash logs make sense (the app is open source).
+-dontobfuscate
+
 # kotlinx.serialization
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt

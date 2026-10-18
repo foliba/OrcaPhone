@@ -55,6 +55,16 @@ class SlicerTest {
     }
 
     @Test
+    fun placeholders() {
+        val v = mapOf("bed" to "60", "temp" to "215")
+        val P = com.orcaphone.core.gcode.Placeholders
+        assertEquals("M190 S60\nM109 S215", P.apply("M190 S[bed]\nM109 S{temp}", v))
+        assertEquals("S60 S215", P.apply("S[bed[0]] S{temp[1]}", v))
+        assertEquals("[unknown] {if x}G1{endif} [ bed ] [bed", P.apply("[unknown] {if x}G1{endif} [ bed ] [bed", v))
+        assertEquals("", P.apply("", v))
+    }
+
+    @Test
     fun calibrationCube() {
         val obj = place(Primitives.box(20.0, 20.0, 20.0))
         val out = File(outDir, "cube.gcode")

@@ -324,9 +324,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: OutOfMemoryError) {
                 _slice.value = SliceUiState.Failed("Out of memory. Try a simpler model or a larger layer height.")
             } catch (e: Throwable) {
-                _slice.value = SliceUiState.Failed(e.message ?: e.javaClass.simpleName)
+                android.util.Log.e("OrcaPhone", "Slicing failed", e)
+                _slice.value = SliceUiState.Failed(describe(e))
             }
         }
+    }
+
+    /** Human-readable error including the exception type and root cause (messages alone can be cryptic). */
+    private fun describe(e: Throwable): String {
+        var root: Throwable = e
+        while (root.cause != null && root.cause !== root) root = root.cause!!
+        val head = when (e) {
+            is IllegalArgumentException -> e.message ?: "Invalid input"
+            else -> "${e.javaClass.simpleName}: ${e.message ?: "no details"}"
+        }
+        return if (root !== e) "$head\nCaused by ${root.javaClass.simpleName}: ${root.message ?: ""}" else head
     }
 
     fun cancelSlice() {
