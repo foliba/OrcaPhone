@@ -38,7 +38,6 @@ import androidx.compose.material.icons.outlined.VerticalAlignBottom
 import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.ThreeDRotation
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material3.AlertDialog
@@ -293,7 +292,7 @@ private fun ViewControls(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SmallFloatingActionButton(onClick = { onView(-120.0, 35.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.ThreeDRotation, "Iso view")
+            Icon(Icons.Outlined.ViewInAr, "Iso view")
         }
         SmallFloatingActionButton(onClick = { onView(-90.0, 89.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
             Icon(Icons.Outlined.VerticalAlignTop, "Top view")
