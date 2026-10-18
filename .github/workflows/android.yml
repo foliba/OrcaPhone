@@ -25,13 +25,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Slicer core unit tests
-        run: ./gradlew :slicer-core:test --stacktrace
+        run: ./gradlew :slicer-core:test
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
 
       - name: Build release APK
-        run: ./gradlew :app:assembleRelease --stacktrace
+        run: ./gradlew :app:assembleRelease
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4

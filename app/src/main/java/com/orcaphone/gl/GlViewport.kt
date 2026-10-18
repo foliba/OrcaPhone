@@ -60,7 +60,7 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
         setEGLConfigChooser(MultisampleConfigChooser())
         preserveEGLContextOnPause = true
         setRenderer(renderer)
-        renderMode = RENDERMODE_WHEN_DIRTY
+        renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
     }
 
     private val objects: List<PlateObject> get() = renderer.prepare?.objects ?: emptyList()
@@ -182,7 +182,7 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
     }
 
     /** Prefers 4x MSAA, falls back to a plain RGB888 + depth config. */
-    private class MultisampleConfigChooser : EGLConfigChooser {
+    private class MultisampleConfigChooser : GLSurfaceView.EGLConfigChooser {
         override fun chooseConfig(egl: EGL10, display: EGLDisplay): EGLConfig {
             val es3 = 0x40 // EGL_OPENGL_ES3_BIT_KHR
             val attempts = listOf(
