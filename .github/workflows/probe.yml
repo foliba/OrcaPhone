@@ -11,14 +11,17 @@ jobs:
         run: |
           set +e
           UA='Mozilla/5.0 (Linux; Android 14) OrcaPhone/0.2'
-          gql() { echo "=== $1"; curl -sS -m 30 -A "$UA" -H 'Content-Type: application/json' -H 'Origin: https://www.printables.com' -H 'Referer: https://www.printables.com/' -w '\nHTTP %{http_code}\n' https://api.printables.com/graphql/ -d "$2" | head -c 6000; echo; }
-          gql intro-print '{"query":"{ __type(name:\"PrintType\") { fields { name type { name kind ofType { name kind ofType { name kind ofType { name } } } } } } }"}'
-          gql intro-query '{"query":"{ __schema { queryType { fields { name args { name } } } mutationType { fields { name args { name type { name kind ofType { name } } } } } } }"}'
-          gql enum-dl '{"query":"{ a: __type(name:\"DownloadFileTypeEnum\") { enumValues { name } } b: __type(name:\"DownloadSourceEnum\") { enumValues { name } } }"}'
-          gql intro-stl '{"query":"{ __type(name:\"STLType\") { fields { name } } }"}'
-          gql intro-other '{"query":"{ __type(name:\"OtherFileType\") { fields { name } } }"}'
-          gql intro-user '{"query":"{ a: __type(name:\"UserType\") { fields { name } } b: __type(name:\"LicenseType\") { fields { name } } }"}'
-          gql model '{"query":"query P($id: ID!) { print(id: $id) { id name slug user { publicUsername handle } license { name abbreviation } stls { id name fileSize filePreviewPath } otherFiles { id name fileSize } } }","variables":{"id":"3161"}}'
-          gql dl '{"operationName":"GetDownloadLink","query":"mutation GetDownloadLink($id: ID!, $modelId: ID!, $fileType: DownloadFileTypeEnum!, $source: DownloadSourceEnum!) { getDownloadLink(id: $id, printId: $modelId, fileType: $fileType, source: $source) { ok errors { field messages } output { link count ttl } } }","variables":{"id":"0","modelId":"3161","fileType":"stl","source":"model_detail"}}'
-          echo "=== page"; curl -sS -m 30 -A "$UA" -o page.html -w 'HTTP %{http_code} %{url_effective}\n' -L https://www.printables.com/model/3161-3d-benchy; head -c 600 page.html; echo
-          echo "=== media"; curl -sSI -m 30 -A "$UA" https://media.printables.com/ | head -5
+          gql() { echo "=== $1"; curl -sS -m 30 -A "$UA" -H 'Content-Type: application/json' -H 'Origin: https://www.printables.com' -H 'Referer: https://www.printables.com/' -w '\nHTTP %{http_code}\n' https://api.printables.com/graphql/ -d "$2" | head -c 3000; echo; }
+          for f in gcodes slas downloadPacks threeMfs otherFiles image filesType zipPath premium price club isPrivate; do
+            gql "field-$f" "{\"query\":\"{ print(id: \\\"3161\\\") { $f } }\"}"
+          done
+          gql stl-fields '{"query":"{ print(id: \"3161\") { stls { id name fileSize filePreviewPath folder note fileType } } }"}'
+          for id in 900123 1000123 1100123 1200123 1300123 1400123; do
+            gql "m$id" "{\"query\":\"{ print(id: \\\"$id\\\") { id name stls { id name fileSize } otherFiles { id name fileSize } } }\"}"
+          done
+          gql dl '{"query":"mutation GetDownloadLink($id: ID!, $modelId: ID!, $fileType: DownloadFileTypeEnum!, $source: DownloadSourceEnum!) { getDownloadLink(id: $id, printId: $modelId, fileType: $fileType, source: $source) { ok errors { field messages } output { link count ttl } } }","variables":{"id":"49068","modelId":"3161","fileType":"stl","source":"model_detail"}}' | tee dl.txt
+          LINK=$(grep -o '"link":"[^"]*"' dl.txt | head -1 | sed 's/"link":"//;s/"$//')
+          echo "LINK=$LINK"
+          [ -n "$LINK" ] && curl -sS -m 60 -A "$UA" -o f.bin -w 'HTTP %{http_code} size=%{size_download} type=%{content_type}\n' "$LINK" && head -c 80 f.bin | xxd | head -3
+          echo "=== preview"; curl -sS -m 30 -A "$UA" -o p.png -w 'HTTP %{http_code} size=%{size_download} type=%{content_type}\n' "https://media.printables.com/media/prints/3161/stls/123914_1f1d8ca1-252a-4770-846f-52f1208d193d/3dbenchy_preview.png"
+          echo "=== short"; curl -sSI -m 30 -A "$UA" https://prnt.pr/3161 | head -5
