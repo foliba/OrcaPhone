@@ -42,6 +42,7 @@ PROCESS_KEYS = [
     "top_surface_speed", "support_speed", "support_interface_speed", "travel_speed",
     "default_acceleration", "outer_wall_acceleration", "top_surface_acceleration",
     "initial_layer_acceleration", "travel_acceleration", "enable_support",
+    "support_type", "tree_support_branch_angle", "tree_support_branch_diameter",
     "support_threshold_angle", "support_on_build_plate_only", "support_top_z_distance",
     "support_object_xy_distance", "support_base_pattern_spacing", "support_interface_top_layers",
     "support_interface_spacing", "skirt_loops", "skirt_distance", "skirt_height", "brim_type",

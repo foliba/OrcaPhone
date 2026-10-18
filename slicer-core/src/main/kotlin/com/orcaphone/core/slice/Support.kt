@@ -7,14 +7,39 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.tan
 
-/** Support areas for one layer: [base] gets sparse lines, [interface] dense lines right under the model. */
-class SupportLayer(val base: Geometry, val interfaceArea: Geometry)
+/**
+ * Support areas for one layer: [base] gets sparse lines, [interfaceArea] dense lines right under the model.
+ * Tree supports set [walls] so every branch also gets an outline loop.
+ */
+class SupportLayer(val base: Geometry, val interfaceArea: Geometry, val walls: Boolean = false)
 
 /**
  * "Normal" (grid-style) support: overhangs are detected by comparing each layer with the
  * one below (offset by the threshold-angle allowance) and projected down to the plate.
  */
 object SupportGenerator {
+
+    /**
+     * Areas of each layer that need support: detected with the threshold-angle allowance, then the
+     * whole overhanging strip (R[i] - R[i-1]) near the detection so gentle slopes form a continuous area.
+     */
+    fun detectOverhangs(regions: Array<Geometry>, h: Double, p: ProcessProfile, lineWidth: Double, runner: ParallelRunner): Array<Geometry> {
+        val n = regions.size
+        val angle = p.supportThresholdAngle.coerceIn(1.0, 89.0) * PI / 180
+        val allowance = h / tan(angle)
+        val overhang = Array<Geometry>(n) { Geo.EMPTY }
+        if (n < 2) return overhang
+        runner.forEach(n - 1) { k ->
+            val i = k + 1
+            val below = Geo.offset(regions[i - 1], allowance)
+            val detected = Geo.open(Geo.difference(regions[i], below), 0.02)
+            if (Geo.removeSmall(detected, lineWidth * lineWidth * 0.25).isEmpty) return@forEach
+            val strip = Geo.difference(regions[i], regions[i - 1])
+            val o = Geo.intersection(strip, Geo.offset(detected, allowance + lineWidth))
+            overhang[i] = Geo.simplify(Geo.removeSmall(o, lineWidth * lineWidth * 0.5), 0.03)
+        }
+        return overhang
+    }
 
     fun generate(
         regions: Array<Geometry>, heights: DoubleArray, p: ProcessProfile, lineWidth: Double,
@@ -24,24 +49,11 @@ object SupportGenerator {
         val empty = SupportLayer(Geo.EMPTY, Geo.EMPTY)
         if (n < 2) return Array(n) { empty }
         val h = heights.average()
-        val angle = p.supportThresholdAngle.coerceIn(1.0, 89.0) * PI / 180
-        val allowance = h / tan(angle)
         val gap = max(1, (p.supportTopZDistance / h).roundToInt())
         val xy = p.supportObjectXYDistance + lineWidth / 2
 
         // 1. overhangs per layer
-        val overhang = Array<Geometry>(n) { Geo.EMPTY }
-        runner.forEach(n - 1) { k ->
-            val i = k + 1
-            val below = Geo.offset(regions[i - 1], allowance)
-            // detect with the angle allowance, then support the whole overhanging strip
-            // (R[i] - R[i-1]) near the detection so gentle slopes form a continuous area
-            val detected = Geo.open(Geo.difference(regions[i], below), 0.02)
-            if (Geo.removeSmall(detected, lineWidth * lineWidth * 0.25).isEmpty) return@forEach
-            val strip = Geo.difference(regions[i], regions[i - 1])
-            val o = Geo.intersection(strip, Geo.offset(detected, allowance + lineWidth))
-            overhang[i] = Geo.simplify(Geo.removeSmall(o, lineWidth * lineWidth * 0.5), 0.03)
-        }
+        val overhang = detectOverhangs(regions, h, p, lineWidth, runner)
         progress(0.3f)
         // 2. grown model for clearance
         val clearance = Array<Geometry>(n) { Geo.EMPTY }

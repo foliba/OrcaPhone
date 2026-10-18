@@ -41,6 +41,12 @@ enum class WallOrder(val label: String) {
 }
 
 @Serializable
+enum class SupportType(val label: String) {
+    NORMAL("Normal"),
+    TREE("Tree"),
+}
+
+@Serializable
 enum class BrimType(val label: String) {
     NONE("No brim"),
     OUTER("Outer brim only"),
@@ -179,6 +185,11 @@ data class ProcessProfile(
     val travelAcceleration: Double = 6000.0,
     // Support
     val enableSupport: Boolean = false,
+    val supportType: SupportType = SupportType.NORMAL,
+    /** Tree supports: maximum branch lean from vertical (degrees). */
+    val treeBranchAngle: Double = 40.0,
+    /** Tree supports: branch diameter (mm); merged trunks may grow up to twice this. */
+    val treeBranchDiameter: Double = 5.0,
     val supportThresholdAngle: Double = 30.0,
     val supportOnBuildPlateOnly: Boolean = false,
     val supportTopZDistance: Double = 0.2,

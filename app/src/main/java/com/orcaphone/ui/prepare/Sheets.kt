@@ -70,6 +70,7 @@ import com.orcaphone.core.config.BrimType
 import com.orcaphone.core.config.InfillPattern
 import com.orcaphone.core.config.PrinterProfile
 import com.orcaphone.core.config.ProcessProfile
+import com.orcaphone.core.config.SupportType
 import com.orcaphone.core.math.Vec3
 import com.orcaphone.core.plate.PlateObject
 import com.orcaphone.data.PresetState
@@ -230,6 +231,15 @@ fun QuickSettingsSheet(
             SectionTitle("Support & adhesion")
             SwitchRow("Supports", "Generate support under overhangs", process.enableSupport) { v -> onChange { it.copy(enableSupport = v) } }
             if (process.enableSupport) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    SupportType.entries.forEachIndexed { i, t ->
+                        SegmentedButton(
+                            selected = process.supportType == t,
+                            onClick = { onChange { it.copy(supportType = t) } },
+                            shape = SegmentedButtonDefaults.itemShape(i, SupportType.entries.size),
+                        ) { Text(if (t == SupportType.TREE) "Tree" else "Normal") }
+                    }
+                }
                 SwitchRow("On build plate only", "Never place supports on the model", process.supportOnBuildPlateOnly) { v ->
                     onChange { it.copy(supportOnBuildPlateOnly = v) }
                 }

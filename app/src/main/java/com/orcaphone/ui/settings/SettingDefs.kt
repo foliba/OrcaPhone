@@ -7,6 +7,7 @@ import com.orcaphone.core.config.InfillPattern
 import com.orcaphone.core.config.PrinterProfile
 import com.orcaphone.core.config.ProcessProfile
 import com.orcaphone.core.config.SeamPosition
+import com.orcaphone.core.config.SupportType
 import com.orcaphone.core.config.SurfacePattern
 import com.orcaphone.core.config.WallOrder
 
@@ -143,9 +144,19 @@ object ProcessSettings {
                 SettingGroup<ProcessProfile>(
                     "Support", listOf(
                         Setting.Toggle("Enable support", { it.enableSupport }, { p, v -> p.copy(enableSupport = v) }),
+                        Setting.Choice("Type", SupportType.entries, { it.label }, { it.supportType }, { p, v -> p.copy(supportType = v) },
+                            "Tree supports use less material, touch the model in fewer places and break off more easily."),
                         Setting.Number("Threshold angle", "°", { it.supportThresholdAngle }, { p, v -> p.copy(supportThresholdAngle = v) }, 1.0, 89.0, 0,
                             "Surfaces flatter than this angle (from horizontal) get support."),
                         Setting.Toggle("On build plate only", { it.supportOnBuildPlateOnly }, { p, v -> p.copy(supportOnBuildPlateOnly = v) }),
+                    ),
+                ),
+                SettingGroup<ProcessProfile>(
+                    "Tree supports", listOf(
+                        Setting.Number("Branch angle", "°", { it.treeBranchAngle }, { p, v -> p.copy(treeBranchAngle = v) }, 5.0, 75.0, 0,
+                            "How far branches may lean from vertical to avoid the model and join others."),
+                        Setting.Number("Branch diameter", "mm", { it.treeBranchDiameter }, { p, v -> p.copy(treeBranchDiameter = v) }, 1.0, 20.0, 1,
+                            "Merged trunks can grow to twice this."),
                     ),
                 ),
                 SettingGroup<ProcessProfile>(

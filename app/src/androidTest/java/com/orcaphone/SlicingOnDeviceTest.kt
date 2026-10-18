@@ -36,6 +36,16 @@ class SlicingOnDeviceTest {
     }
 
     @Test
+    fun treeSupports() {
+        val printer = BuiltinProfiles.printers.first()
+        val obj = PlateObject.create(1, "s", Primitives.sphere(20.0), x = 110.0, y = 110.0)
+        val process = BuiltinProfiles.processes.first { it.id == "builtin-0.20" }
+            .copy(enableSupport = true, supportType = com.orcaphone.core.config.SupportType.TREE)
+        val res = Slicer(printer, BuiltinProfiles.filaments.first(), process).slice(listOf(obj.worldMesh()), File(dir, "tree.gcode")) { _, _ -> }
+        assertTrue(res.layers[0].paths.any { it.feature == com.orcaphone.core.slice.Feature.SUPPORT })
+    }
+
+    @Test
     fun vaseMode() {
         val printer = BuiltinProfiles.printers.first()
         val obj = PlateObject.create(1, "c", Primitives.cylinder(20.0, 20.0), x = 110.0, y = 110.0)

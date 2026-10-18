@@ -7,6 +7,7 @@ import com.orcaphone.core.config.InfillPattern
 import com.orcaphone.core.config.PrinterProfile
 import com.orcaphone.core.config.ProcessProfile
 import com.orcaphone.core.config.SeamPosition
+import com.orcaphone.core.config.SupportType
 import com.orcaphone.core.config.SurfacePattern
 import com.orcaphone.core.config.WallOrder
 import com.orcaphone.core.gcode.NumFmt
@@ -170,6 +171,10 @@ object OrcaPresetMapper {
         Field("initial_layer_acceleration", Enc.VALUE, { p, v -> p.copy(initialLayerAcceleration = num(v)) }, { f(it.initialLayerAcceleration) }),
         Field("travel_acceleration", Enc.VALUE, { p, v -> p.copy(travelAcceleration = num(v)) }, { f(it.travelAcceleration) }),
         Field("enable_support", Enc.VALUE, { p, v -> p.copy(enableSupport = bool(v)) }, { b(it.enableSupport) }),
+        Field("support_type", Enc.VALUE, { p, v -> p.copy(supportType = if (v.trim().startsWith("tree")) SupportType.TREE else SupportType.NORMAL) },
+            { if (it.supportType == SupportType.TREE) "tree(auto)" else "normal(auto)" }),
+        Field("tree_support_branch_angle", Enc.VALUE, { p, v -> p.copy(treeBranchAngle = num(v)) }, { f(it.treeBranchAngle) }),
+        Field("tree_support_branch_diameter", Enc.VALUE, { p, v -> p.copy(treeBranchDiameter = num(v)) }, { f(it.treeBranchDiameter) }),
         Field("support_threshold_angle", Enc.VALUE, { p, v -> num(v).let { a -> if (a > 0) p.copy(supportThresholdAngle = a) else p } },
             { f(it.supportThresholdAngle) }),
         Field("support_on_build_plate_only", Enc.VALUE, { p, v -> p.copy(supportOnBuildPlateOnly = bool(v)) }, { b(it.supportOnBuildPlateOnly) }),
