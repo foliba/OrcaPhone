@@ -81,7 +81,7 @@ import com.orcaphone.ui.components.fmt
 import com.orcaphone.ui.settings.EditorTarget
 import kotlin.math.cos
 
-enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD }
+enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,18 +197,20 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
     when (sheet) {
         PrepareSheet.PRINTER -> PresetPickerSheet(
             title = "Printer", state = printer, idOf = { it.id }, nameOf = { it.name }, builtinOf = { it.builtin },
-            groupOf = { it.vendor },
+            groupOf = { it.vendor }, cloudOf = { it.cloud != null },
+            onLibrary = { sheet = PrepareSheet.LIBRARY },
             onSelect = { vm.repos.printers.select(it); vm.frameBed() },
             onEdit = { sheet = null; onEdit(EditorTarget.PRINTER) }, onDismiss = { sheet = null },
         )
         PrepareSheet.FILAMENT -> PresetPickerSheet(
             title = "Filament", state = filament, idOf = { it.id }, nameOf = { it.name }, builtinOf = { it.builtin },
-            groupOf = { it.type }, colorOf = { parseColor(it.colorHex) },
+            groupOf = { it.type }, colorOf = { parseColor(it.colorHex) }, cloudOf = { it.cloud != null },
             onSelect = { vm.repos.filaments.select(it) },
             onEdit = { sheet = null; onEdit(EditorTarget.FILAMENT) }, onDismiss = { sheet = null },
         )
         PrepareSheet.PROCESS -> PresetPickerSheet(
             title = "Process", state = process, idOf = { it.id }, nameOf = { it.name }, builtinOf = { it.builtin },
+            cloudOf = { it.cloud != null },
             onSelect = { vm.repos.processes.select(it) },
             onEdit = { sheet = null; onEdit(EditorTarget.PROCESS) }, onDismiss = { sheet = null },
         )
@@ -234,6 +236,12 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
         PrepareSheet.ADD -> AddSheet(
             onImport = { sheet = null; openImport() },
             onSample = { sheet = null; vm.addSample(it) },
+            onDismiss = { sheet = null },
+        )
+        PrepareSheet.LIBRARY -> com.orcaphone.ui.cloud.PrinterLibrarySheet(
+            cloud = vm.cloud,
+            onAdded = { name -> sheet = null; vm.frameBed(); vm.notify("Added $name with its default process and filament") },
+            onError = { vm.notify(it) },
             onDismiss = { sheet = null },
         )
         null -> Unit

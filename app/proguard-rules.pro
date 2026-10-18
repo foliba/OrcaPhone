@@ -23,3 +23,8 @@
 # JTS has optional AWT/Swing helpers that do not exist on Android
 -dontwarn java.awt.**
 -dontwarn javax.swing.**
+
+# WebView bridge used by the Orca Cloud sign-in page
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

@@ -24,6 +24,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.LibraryAdd
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Lock
@@ -90,6 +92,8 @@ fun <T> PresetPickerSheet(
     builtinOf: (T) -> Boolean,
     groupOf: ((T) -> String)? = null,
     colorOf: ((T) -> Int?)? = null,
+    cloudOf: (T) -> Boolean = { false },
+    onLibrary: (() -> Unit)? = null,
     onSelect: (String) -> Unit,
     onEdit: () -> Unit,
     onDismiss: () -> Unit,
@@ -108,10 +112,21 @@ fun <T> PresetPickerSheet(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
             )
         }
-        val user = state.all.filter { !builtinOf(it) }
+        if (onLibrary != null) {
+            ListItem(
+                headlineContent = { Text("Add from OrcaSlicer library") },
+                supportingContent = { Text("1,600+ printers with their default process and filament") },
+                leadingContent = { Icon(Icons.Outlined.LibraryAdd, null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onLibrary),
+            )
+        }
+        val cloud = state.all.filter { !builtinOf(it) && cloudOf(it) }
+        val user = state.all.filter { !builtinOf(it) && !cloudOf(it) }
         val builtin = state.all.filter { builtinOf(it) }
         val sections = buildList {
-            if (user.isNotEmpty()) add("User presets" to user)
+            if (cloud.isNotEmpty()) add("Orca Cloud" to cloud)
+            if (user.isNotEmpty()) add("On this phone" to user)
             if (groupOf == null) add("System presets" to builtin)
             else builtin.groupBy(groupOf).forEach { (g, list) -> add(g to list) }
         }
@@ -129,8 +144,16 @@ fun <T> PresetPickerSheet(
                         leadingContent = {
                             RadioButton(selected = id == state.selectedId, onClick = { onSelect(id); onDismiss() })
                         },
-                        trailingContent = if (swatch != null) {
-                            { Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF000000.toInt() or swatch))) }
+                        trailingContent = if (swatch != null || cloudOf(item)) {
+                            {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (cloudOf(item)) Icon(Icons.Outlined.Cloud, "Synced with Orca Cloud", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                    if (swatch != null) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Box(Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF000000.toInt() or swatch)))
+                                    }
+                                }
+                            }
                         } else null,
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium)

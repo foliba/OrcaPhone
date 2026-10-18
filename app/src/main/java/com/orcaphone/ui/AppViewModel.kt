@@ -65,6 +65,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val filaments = repos.filaments.state
     val processes = repos.processes.state
     val connections = repos.connections.items
+    val cloud = repos.cloud
 
     val camera = OrbitCamera()
     private val _viewTick = MutableStateFlow(0)
@@ -113,6 +114,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun say(msg: String) { _messages.tryEmit(msg) }
+
+    fun notify(msg: String) = say(msg)
 
     fun setTab(t: Tab) { _tab.value = t }
 

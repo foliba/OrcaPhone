@@ -19,18 +19,22 @@ class Repositories(context: Context) {
 
     val printers = PresetStore(
         BuiltinProfiles.printers, PrinterProfile.serializer(), File(dir, "printers.json"),
-        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false) },
+        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false, cloud = null) },
+        nameOf = { it.name }, cloudOf = { it.cloud }, withCloud = { p, c -> p.copy(cloud = c) },
     )
     val filaments = PresetStore(
         BuiltinProfiles.filaments, FilamentProfile.serializer(), File(dir, "filaments.json"),
-        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false) },
+        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false, cloud = null) },
+        nameOf = { it.name }, cloudOf = { it.cloud }, withCloud = { p, c -> p.copy(cloud = c) },
     )
     val processes = PresetStore(
         BuiltinProfiles.processes, ProcessProfile.serializer(), File(dir, "processes.json"),
-        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false) },
+        id = { it.id }, isBuiltin = { it.builtin }, rename = { p, id, name -> p.copy(id = id, name = name, builtin = false, cloud = null) },
+        nameOf = { it.name }, cloudOf = { it.cloud }, withCloud = { p, c -> p.copy(cloud = c) },
     )
     val connections = ConnectionStore(File(dir, "connections.json"))
     val hostClient = PrinterHostClient()
+    val cloud = com.orcaphone.cloud.CloudSync(context.applicationContext, this)
 }
 
 class ConnectionStore(private val file: File) {

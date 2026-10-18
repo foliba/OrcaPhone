@@ -68,15 +68,23 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun DeviceScreen(vm: AppViewModel) {
+fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
     val connections by vm.connections.collectAsStateWithLifecycle()
     val statuses by vm.statuses.collectAsStateWithLifecycle()
     val slice by vm.slice.collectAsStateWithLifecycle()
     val upload by vm.upload.collectAsStateWithLifecycle()
+    val cloudState by vm.cloud.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<PrinterConnection?>(null) }
     var confirmCancel by remember { mutableStateOf<PrinterConnection?>(null) }
     val ready = slice as? SliceUiState.Ready
 
+    // Cloud printers: refresh while visible.
+    LaunchedEffect(cloudState.session?.userId) {
+        while (cloudState.session != null) {
+            vm.cloud.refreshPrinters()
+            delay(30_000)
+        }
+    }
     // Poll while this screen is visible.
     LaunchedEffect(connections) {
         while (true) {
@@ -91,6 +99,19 @@ fun DeviceScreen(vm: AppViewModel) {
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                com.orcaphone.ui.cloud.CloudAccountCard(
+                    state = cloudState,
+                    onSignIn = onSignIn,
+                    onSync = { vm.cloud.syncNow() },
+                    onUploadLocal = { vm.cloud.uploadLocalPresets() },
+                    onAutoUpload = { vm.cloud.setAutoUpload(it) },
+                    onSignOut = { vm.cloud.signOut() },
+                )
+            }
+            if (cloudState.session != null && cloudState.printers.isNotEmpty()) {
+                item { com.orcaphone.ui.cloud.CloudPrintersCard(cloudState.printers) }
+            }
             item {
                 Text("Printers", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(4.dp))
                 Text(

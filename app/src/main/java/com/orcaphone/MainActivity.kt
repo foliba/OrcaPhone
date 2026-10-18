@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         intent ?: return
         val uris = ArrayList<Uri>()
         when (intent.action) {
-            Intent.ACTION_VIEW -> intent.data?.let { uris.add(it) }
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme != "orcaphone" }?.let { uris.add(it) }
             Intent.ACTION_SEND -> streamExtra(intent)?.let { uris.add(it) }
             Intent.ACTION_SEND_MULTIPLE -> streamListExtra(intent)?.let { uris.addAll(it) }
         }

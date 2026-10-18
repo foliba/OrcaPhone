@@ -53,12 +53,27 @@ enum class HostType(val label: String) {
     PRUSALINK("PrusaLink"),
 }
 
+/**
+ * Link of a user preset to its copy in Orca Cloud.
+ * [content] is the last known cloud content (OrcaSlicer key -> serialized value), so settings OrcaPhone
+ * does not model survive a round trip.
+ */
+@Serializable
+data class CloudMeta(
+    val id: String,
+    val updatedTime: Long = 0,
+    val content: Map<String, String> = emptyMap(),
+    /** Local changes not yet uploaded. */
+    val pendingPush: Boolean = false,
+)
+
 /** Machine settings ("Printer" preset in OrcaSlicer). */
 @Serializable
 data class PrinterProfile(
     val id: String,
     val name: String,
     val builtin: Boolean = false,
+    val cloud: CloudMeta? = null,
     val vendor: String = "Custom",
     val bedWidth: Double = 220.0,
     val bedDepth: Double = 220.0,
@@ -93,6 +108,7 @@ data class FilamentProfile(
     val id: String,
     val name: String,
     val builtin: Boolean = false,
+    val cloud: CloudMeta? = null,
     val type: String = "PLA",
     val colorHex: String = "#009688",
     val diameter: Double = 1.75,
@@ -120,6 +136,7 @@ data class ProcessProfile(
     val id: String,
     val name: String,
     val builtin: Boolean = false,
+    val cloud: CloudMeta? = null,
     // Quality
     val layerHeight: Double = 0.2,
     val initialLayerHeight: Double = 0.2,
