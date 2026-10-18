@@ -35,6 +35,17 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 - Live status (state, progress, temperatures), pause / resume / cancel
 - Upload with progress, optionally start printing
 
+**Orca Cloud**
+- Sign in with your OrcaSlicer account (Device tab), using the same hosted login page as OrcaSlicer desktop
+- Two-way sync of your printer, filament and process presets with OrcaSlicer on your computer
+  (download on sign-in / start / "Sync now", upload when you save, deletes synced; conflicts keep a phone copy)
+- Your Orca Cloud printers with online status and job progress
+- "Add from OrcaSlicer library": any of OrcaSlicer's 1,600+ printers with its default process and filament
+
+Synced presets only store differences to OrcaSlicer's system presets, so the app bundles those
+(`slicer-core/src/main/resources/orca/system_presets.json.gz`). Regenerate after an OrcaSlicer update with
+`tools/gen_orca_catalog.py <OrcaSlicer>/resources/profiles`.
+
 ## Built-in presets
 Generic Marlin, Generic Klipper, Creality Ender-3/V2, Ender-3 V3 SE, K1C, Prusa MK4, MK3S, Voron 2.4 350, Voron Trident 300 —
 machine limits taken from the OrcaSlicer system profiles, with simplified start/end G-code. Filaments: PLA, PLA+, PETG, ABS, ASA, TPU.
