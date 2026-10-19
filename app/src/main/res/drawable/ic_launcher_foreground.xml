@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stylised layered print (stacked extrusion lines) with a nozzle on top. 108dp adaptive canvas, safe zone 66dp. -->
+<!-- Stylised layered print (stacked extrusion lines) under a telephone handset acting as the X gantry,
+     with the nozzle hanging from it. 108dp adaptive canvas, safe zone 66dp. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- nozzle -->
+    <!-- handset (X gantry) -->
     <path android:fillColor="#FFFFFFFF"
-        android:pathData="M44,28 L64,28 L64,36 L58,36 L55,42 L53,42 L50,36 L44,36 Z" />
+        android:pathData="M30,40 Q30,35.5 33.5,34.5 L36,33.8 C40,29.3 46,28 54,28 C62,28 68,29.3 72,33.8 L74.5,34.5 Q78,35.5 78,40 L78,41.5 Q78,43 76.5,43 L67.5,43 Q66,43 66,41.5 L66,38.8 C63,36.4 59,35.6 54,35.6 C49,35.6 45,36.4 42,38.8 L42,41.5 Q42,43 40.5,43 L31.5,43 Q30,43 30,41.5 Z" />
+    <!-- nozzle hanging from the handset -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M50,35 L58,35 L58,40 L56.2,40 L55,44.5 L53,44.5 L51.8,40 L50,40 Z" />
     <!-- printed layers -->
     <path android:fillColor="#FFB2DFDB"
         android:pathData="M40,47 L68,47 A3,3 0 0 1 68,53 L40,53 A3,3 0 0 1 40,47 Z" />
