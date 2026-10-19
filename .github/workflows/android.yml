@@ -58,8 +58,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { api: 35, target: default }
           - { api: 35, target: google_apis }
+          - { api: 36, target: google_apis }
+          - { api: 37, target: google_apis }
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
