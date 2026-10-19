@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — Printables import and multiple beds
+
+Import models straight from Printables links and spread big jobs across several beds.
 
 ### Import from Printables
 - Paste a printables.com model link (Add → From Printables link). The app lists the model's STL and
@@ -16,6 +18,15 @@
 - Bed switcher with chips, ‹ › arrows and an n/m indicator on Prepare and Preview.
 - Add and delete beds, move objects between beds, arrange all beds or only the current one.
 - Slicing works per bed; each bed keeps its own result, time and G-code file.
+
+### Notes
+- Printables has no official public API; the app uses the GraphQL API the Printables website
+  uses, anonymously (no Printables/Prusa login). Paid models can't be imported.
+
+### Testing
+- Device tests now run on Android 11 and Android 15 emulators, including a UI test that imports
+  a real Printables model and checks the Import button stays on screen.
+- A non-blocking CI check talks to the live Printables API so changes on their side show up early.
 
 ## 0.1.0 — first preview
 
