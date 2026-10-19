@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — licence
+
+OrcaPhone is now open source under the AGPL-3.0.
 
 ### Licence
 - OrcaPhone is now licensed under the GNU Affero General Public License v3.0 (`LICENSE`).
