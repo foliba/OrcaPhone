@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — complete licence list
+
+### Licences
+- The *About & licences* screen now lists every library in the app, including indirect
+  dependencies, with version and licence. The list is generated at build time, and the build fails
+  if a library with a licence that isn't explicitly allowed is added.
+
 ## 0.2.1 — licence
 
 OrcaPhone is now open source under the AGPL-3.0.

@@ -1,8 +1,14 @@
 # Third-party notices
 
 OrcaPhone is licensed under the GNU Affero General Public License v3.0 (see [LICENSE](LICENSE)).
-It includes or links the following third-party components. The same list, with the full licence
-texts, is shown in the app under ⋮ → *About & licences* (texts in `app/src/main/assets/licenses/`).
+It includes or links the following third-party components (summary below).
+
+The complete list of every library in the APK, including indirect dependencies, with versions and
+licences, is generated at build time by the [licensee](https://github.com/cashapp/licensee) Gradle
+plugin and shown in the app under ⋮ → *About & licences*. The build fails if a library has a licence
+that isn't explicitly allowed in `app/build.gradle.kts` (currently Apache-2.0, MIT, BSD-3-Clause and
+JTS under EDL-1.0). Licence texts are in `app/src/main/assets/licenses/`. To see the list locally, run
+`./gradlew :app:licenseeAndroidRelease` and open `app/build/reports/licensee/`.
 
 | Component | Copyright | Licence |
 |---|---|---|
