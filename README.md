@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.2.1**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.2.2**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features

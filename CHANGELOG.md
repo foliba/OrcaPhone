@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 — complete licence list
 
 ### Licences
 - The *About & licences* screen now lists every library in the app, including indirect
