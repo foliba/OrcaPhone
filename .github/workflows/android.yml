@@ -57,7 +57,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [30, 34]
+        include:
+          - { api: 35, target: default }
+          - { api: 35, target: google_apis }
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -82,7 +84,7 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          target: default
+          target: ${{ matrix.target }}
           ram-size: 4096M
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
