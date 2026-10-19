@@ -14,6 +14,10 @@ import com.orcaphone.core.math.Mat4
 import com.orcaphone.core.math.Vec3
 import com.orcaphone.core.mesh.MeshLoader
 import com.orcaphone.core.mesh.Primitives
+import com.orcaphone.core.models.ModelSourceException
+import com.orcaphone.core.models.ModelSources
+import com.orcaphone.core.models.RemoteFile
+import com.orcaphone.core.models.RemoteModel
 import com.orcaphone.core.plate.Arranger
 import com.orcaphone.core.plate.PlateObject
 import com.orcaphone.core.preview.PreviewGeometry
@@ -25,6 +29,8 @@ import com.orcaphone.data.JobCommand
 import com.orcaphone.gl.OrbitCamera
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -55,6 +61,22 @@ sealed interface SliceUiState {
     data class Failed(val message: String) : SliceUiState
 }
 
+/** One build plate. Bed numbers shown to the user are list positions + 1; [id] stays stable. */
+data class Bed(val id: Long, val objects: List<PlateObject>)
+
+/** Importing a model from a website such as Printables. */
+sealed interface RemoteImportState {
+    data class Loading(val link: String) : RemoteImportState
+    data class Failed(val message: String, val pageUrl: String? = null, val model: RemoteModel? = null) : RemoteImportState
+    data class Choose(val model: RemoteModel) : RemoteImportState
+    data class Downloading(val model: RemoteModel, val fileName: String, val done: Long, val total: Long) : RemoteImportState
+}
+
+/** Imported objects waiting for the user to answer a question before they're placed. */
+data class PendingPlacement(val objects: List<PlateObject>, val step: Step, val replace: Boolean = false) {
+    enum class Step { REPLACE_OR_ADD, OVERSIZE }
+}
+
 data class UploadState(val connectionId: String, val progress: Float, val done: Boolean = false, val error: String? = null)
 
 enum class Tab { PREPARE, PREVIEW, DEVICE }
@@ -75,7 +97,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setView(yawDeg: Double, pitchDeg: Double) { camera.setView(yawDeg, pitchDeg); _viewTick.value++ }
 
     private val nextId = AtomicLong(1)
+    private val nextBedId = AtomicLong(2)
+    private val _beds = MutableStateFlow(listOf(Bed(1, emptyList())))
+    val beds: StateFlow<List<Bed>> = _beds.asStateFlow()
+    private val _activeBed = MutableStateFlow(0)
+    /** Index into [beds] of the bed shown in Prepare and Preview. */
+    val activeBed: StateFlow<Int> = _activeBed.asStateFlow()
     private val _objects = MutableStateFlow<List<PlateObject>>(emptyList())
+    /** Objects on the active bed. */
     val objects: StateFlow<List<PlateObject>> = _objects.asStateFlow()
     private val _selected = MutableStateFlow<Long?>(null)
     val selected: StateFlow<Long?> = _selected.asStateFlow()
@@ -83,8 +112,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _tab = MutableStateFlow(Tab.PREPARE)
     val tab: StateFlow<Tab> = _tab.asStateFlow()
 
+    /** Slice state per bed id. */
+    private val _sliceByBed = MutableStateFlow<Map<Long, SliceUiState>>(emptyMap())
+    val sliceByBed: StateFlow<Map<Long, SliceUiState>> = _sliceByBed.asStateFlow()
     private val _slice = MutableStateFlow<SliceUiState>(SliceUiState.Idle)
+    /** Slice state of the active bed. */
     val slice: StateFlow<SliceUiState> = _slice.asStateFlow()
+
+    private val _linkPrompt = MutableStateFlow(false)
+    /** True while the "paste a model link" dialog is open. */
+    val linkPrompt: StateFlow<Boolean> = _linkPrompt.asStateFlow()
+    private val _remote = MutableStateFlow<RemoteImportState?>(null)
+    val remote: StateFlow<RemoteImportState?> = _remote.asStateFlow()
+    private val _pending = MutableStateFlow<PendingPlacement?>(null)
+    val pending: StateFlow<PendingPlacement?> = _pending.asStateFlow()
+    private var remoteJob: Job? = null
 
     private val _busy = MutableStateFlow<String?>(null)
     val busy: StateFlow<String?> = _busy.asStateFlow()
@@ -98,19 +140,116 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val upload: StateFlow<UploadState?> = _upload.asStateFlow()
 
     private var sliceJob: Job? = null
+    private var slicingBed: Long? = null
     private var cancelToken: CancelToken? = null
 
     init {
-        // Any change to the plate or the settings makes an existing slice result stale.
+        // A settings change makes every slice result stale; plate edits mark only their bed (see setBeds).
         viewModelScope.launch {
-            combine(_objects, printers, filaments, processes) { o, a, b, c -> listOf(o, a.working, b.working, c.working) }
+            combine(printers, filaments, processes) { a, b, c -> listOf(a.working, b.working, c.working) }
                 .drop(1)
                 .collect {
-                    val s = _slice.value
-                    if (s is SliceUiState.Ready && !s.stale) _slice.value = s.copy(stale = true)
+                    _sliceByBed.value = _sliceByBed.value.mapValues { (_, s) ->
+                        if (s is SliceUiState.Ready && !s.stale) s.copy(stale = true) else s
+                    }
+                    refreshSlice()
                 }
         }
         frameBed()
+    }
+
+    // ------------------------------------------------------------------ beds
+
+    private val activeBedId get() = _beds.value[_activeBed.value].id
+
+    /** Objects on the active bed; assigning replaces them. */
+    private var plate: List<PlateObject>
+        get() = _beds.value[_activeBed.value].objects
+        set(v) {
+            val a = _activeBed.value
+            setBeds(_beds.value.mapIndexed { i, b -> if (i == a) b.copy(objects = v) else b }, a)
+        }
+
+    /** Replaces all beds, marks the slices of changed beds stale and drops results of removed beds. */
+    private fun setBeds(newBeds: List<Bed>, active: Int) {
+        val list = newBeds.ifEmpty { listOf(Bed(nextBedId.getAndIncrement(), emptyList())) }
+        val old = _beds.value.associateBy { it.id }
+        val ids = list.map { it.id }.toSet()
+        val map = _sliceByBed.value.filterKeys { it in ids }.mapValues { (id, s) ->
+            val changed = old[id]?.objects !== list.first { it.id == id }.objects
+            if (changed && s is SliceUiState.Ready && !s.stale) s.copy(stale = true) else s
+        }
+        for (id in _sliceByBed.value.keys - ids) gcodeDir(id).deleteRecursively()
+        if (slicingBed != null && slicingBed !in ids) cancelSlice()
+        _sliceByBed.value = map
+        _beds.value = list
+        _activeBed.value = active.coerceIn(0, list.size - 1)
+        _objects.value = list[_activeBed.value].objects
+        if (_objects.value.none { it.id == _selected.value }) _selected.value = null
+        refreshSlice()
+    }
+
+    private fun refreshSlice() {
+        _slice.value = _sliceByBed.value[activeBedId] ?: SliceUiState.Idle
+    }
+
+    private fun setSlice(bedId: Long, state: SliceUiState) {
+        _sliceByBed.value = if (state is SliceUiState.Idle) _sliceByBed.value - bedId else _sliceByBed.value + (bedId to state)
+        refreshSlice()
+    }
+
+    fun selectBed(index: Int) {
+        if (index !in _beds.value.indices || index == _activeBed.value) return
+        setBeds(_beds.value, index)
+        frameContent()
+    }
+
+    fun addBed() {
+        setBeds(_beds.value + Bed(nextBedId.getAndIncrement(), emptyList()), _beds.value.size)
+        frameBed()
+    }
+
+    fun deleteBed(index: Int) {
+        val list = _beds.value
+        if (index !in list.indices) return
+        if (list.size == 1) { clearPlate(); return }
+        val a = _activeBed.value
+        setBeds(list.filterIndexed { i, _ -> i != index }, if (a > index || a == list.size - 1) a - 1 else a)
+        frameContent()
+    }
+
+    /** Moves the selected object to bed [target] (an index), or to a new bed when null. */
+    fun moveSelectedToBed(target: Int?) {
+        val id = _selected.value ?: return
+        val obj = plate.firstOrNull { it.id == id } ?: return
+        val p = printer
+        val a = _activeBed.value
+        var list = _beds.value.mapIndexed { i, b -> if (i == a) b.copy(objects = b.objects.filter { it.id != id }) else b }
+        val dest = target ?: list.size.also { list = list + Bed(nextBedId.getAndIncrement(), emptyList()) }
+        val existing = list[dest].objects
+        val spot = Arranger.findFreeSpot(existing, obj.size.x, obj.size.y, p.bedWidth, p.bedDepth)
+        val moved = obj.movedTo(spot?.first ?: (p.bedWidth / 2), spot?.second ?: (p.bedDepth / 2))
+        list = list.mapIndexed { i, b -> if (i == dest) b.copy(objects = b.objects + moved) else b }
+        setBeds(list, a)
+        say(
+            "Moved ${obj.name} to bed ${dest + 1}" +
+                if (spot == null && existing.isNotEmpty()) ". It overlaps other objects there, use Arrange." else "",
+        )
+    }
+
+    /** Packs [objs] onto the active bed, opening new beds right after it for whatever doesn't fit. */
+    private fun arrangeIntoActiveBed(objs: List<PlateObject>) {
+        val p = printer
+        val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth).ifEmpty { listOf(emptyList()) }
+        val a = _activeBed.value
+        val list = _beds.value.toMutableList()
+        list[a] = list[a].copy(objects = groups[0])
+        val extra = groups.drop(1).map { Bed(nextBedId.getAndIncrement(), it) }
+        list.addAll(a + 1, extra)
+        setBeds(list, a)
+        if (extra.isNotEmpty()) {
+            say("Not everything fit on bed ${a + 1}, so ${if (extra.size == 1) "a new bed was" else "${extra.size} new beds were"} added")
+        }
     }
 
     private fun say(msg: String) { _messages.tryEmit(msg) }
@@ -131,7 +270,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Frames the objects on the plate (or the sliced print), falling back to the bed. */
     fun frameContent() {
-        val objs = _objects.value
+        val objs = plate
         if (objs.isEmpty()) { frameBed(); return }
         var b = objs.first().worldBounds
         for (o in objs.drop(1)) b = b.union(o.worldBounds)
@@ -190,6 +329,182 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         addObjects(listOf(PlateObject.create(nextId.getAndIncrement(), s.label, mesh)))
     }
 
+    // ------------------------------------------------------------------ import from websites
+
+    private val remoteClient get() = repos.remoteModels
+
+    /** True when [text] contains a link we can import from. */
+    fun isModelLink(text: String) = ModelSources.resolve(text, remoteClient.sources) != null
+
+    fun isMeteredNetwork() = remoteClient.isMetered()
+
+    fun openLinkPrompt() { _linkPrompt.value = true }
+
+    fun closeLinkPrompt() { _linkPrompt.value = false }
+
+    /** Looks up the model behind a pasted link and shows its importable files. */
+    fun openModelLink(text: String) {
+        val found = ModelSources.resolve(text, remoteClient.sources)
+        if (found == null) {
+            _remote.value = RemoteImportState.Failed(
+                "That doesn't look like a Printables model link. It should look like printables.com/model/123456-name.",
+            )
+            return
+        }
+        val (source, id) = found
+        remoteJob?.cancel()
+        _remote.value = RemoteImportState.Loading(text.trim())
+        remoteJob = viewModelScope.launch {
+            _remote.value = try {
+                val model = withContext(Dispatchers.IO) { source.fetchModel(id) }
+                if (model.files.isEmpty()) RemoteImportState.Failed("", model.pageUrl, model) else RemoteImportState.Choose(model)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: ModelSourceException) {
+                RemoteImportState.Failed(e.message ?: "Couldn't load this model")
+            } catch (e: Throwable) {
+                android.util.Log.e("OrcaPhone", "Model lookup failed", e)
+                RemoteImportState.Failed("Couldn't load this model: ${e.message ?: e.javaClass.simpleName}")
+            }
+        }
+    }
+
+    /** Downloads [files] of the model being shown and places them on the plate. */
+    fun importRemoteFiles(files: List<RemoteFile>) {
+        val model = (_remote.value as? RemoteImportState.Choose)?.model ?: return
+        if (files.isEmpty()) return
+        val source = remoteClient.sources.firstOrNull { it.name == model.sourceName } ?: return
+        val total = files.sumOf { it.sizeBytes }.coerceAtLeast(1)
+        remoteJob?.cancel()
+        remoteJob = viewModelScope.launch {
+            val dir = File(getApplication<Application>().cacheDir, "downloads/${model.id}").apply { mkdirs() }
+            val loaded = ArrayList<PlateObject>()
+            val failed = ArrayList<String>()
+            var before = 0L
+            try {
+                for (f in files) {
+                    _remote.value = RemoteImportState.Downloading(model, f.name, before, total)
+                    try {
+                        val models = withContext(Dispatchers.IO) {
+                            val url = source.downloadUrl(model, f)
+                            val dest = File(dir, f.id + "_" + f.name.replace(Regex("[^A-Za-z0-9._-]+"), "_"))
+                            var last = 0L
+                            remoteClient.download(url, dest, isActive = { isActive }) { n ->
+                                val now = System.currentTimeMillis()
+                                if (now - last > 100) {
+                                    last = now
+                                    _remote.value = RemoteImportState.Downloading(model, f.name, before + n, total)
+                                }
+                            }
+                            ensureActive()
+                            try { dest.inputStream().buffered().use { MeshLoader.load(f.name, it) } } finally { dest.delete() }
+                        }
+                        for (m in models) loaded.add(PlateObject.create(nextId.getAndIncrement(), m.name, m.mesh))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: ModelSourceException) {
+                        failed.add(e.message ?: f.name)
+                    } catch (e: Throwable) {
+                        if (!isActive) throw CancellationException()
+                        android.util.Log.e("OrcaPhone", "Download failed", e)
+                        failed.add("${f.name}: ${e.message ?: e.javaClass.simpleName}")
+                    }
+                    before += f.sizeBytes
+                }
+            } catch (e: CancellationException) {
+                dir.deleteRecursively()
+                if (_remote.value is RemoteImportState.Downloading) _remote.value = RemoteImportState.Choose(model)
+                throw e
+            }
+            dir.deleteRecursively()
+            if (loaded.isEmpty()) {
+                _remote.value = RemoteImportState.Failed(
+                    "Nothing could be imported.\n" + failed.joinToString("\n"), model.pageUrl, null,
+                )
+                return@launch
+            }
+            _remote.value = null
+            if (failed.isNotEmpty()) say("Some files failed: " + failed.joinToString("; "))
+            beginPlacement(loaded)
+        }
+    }
+
+    /** Stops a download (back to the file list) or closes the import screen. */
+    fun cancelRemote() {
+        val s = _remote.value
+        remoteJob?.cancel()
+        remoteJob = null
+        _remote.value = if (s is RemoteImportState.Downloading) RemoteImportState.Choose(s.model) else null
+    }
+
+    /** Closes the import screen, stopping any download. */
+    fun closeRemote() {
+        remoteJob?.cancel()
+        remoteJob = null
+        _remote.value = null
+    }
+
+    private fun exceedsVolume(o: PlateObject): Boolean {
+        val p = printer
+        val s = o.size
+        return s.x > p.bedWidth + 1e-6 || s.y > p.bedDepth + 1e-6 || s.z > p.maxHeight + 1e-6
+    }
+
+    /** Starts placing imported objects, asking first whether to replace the plate and what to do with oversize parts. */
+    private fun beginPlacement(objs: List<PlateObject>) {
+        val anyOnPlate = _beds.value.any { it.objects.isNotEmpty() }
+        _pending.value = when {
+            anyOnPlate -> PendingPlacement(objs, PendingPlacement.Step.REPLACE_OR_ADD)
+            objs.any(::exceedsVolume) -> PendingPlacement(objs, PendingPlacement.Step.OVERSIZE, replace = true)
+            else -> { finishPlacement(objs, replace = true); null }
+        }
+    }
+
+    fun answerReplace(replace: Boolean) {
+        val p = _pending.value ?: return
+        _pending.value = if (p.objects.any(::exceedsVolume)) p.copy(step = PendingPlacement.Step.OVERSIZE, replace = replace)
+        else { finishPlacement(p.objects, replace); null }
+    }
+
+    fun answerOversize(scaleToFit: Boolean) {
+        val p = _pending.value ?: return
+        _pending.value = null
+        val pr = printer
+        val objs = if (!scaleToFit) p.objects else p.objects.map { o ->
+            if (!exceedsVolume(o)) return@map o
+            val s = o.size
+            val f = minOf(pr.bedWidth * 0.95 / s.x, pr.bedDepth * 0.95 / s.y, pr.maxHeight / s.z)
+            o.scaled(Vec3(o.scale.x * f, o.scale.y * f, o.scale.z * f))
+        }
+        finishPlacement(objs, p.replace)
+    }
+
+    /** Throws the pending import away. */
+    fun cancelPlacement() { _pending.value = null }
+
+    /** Names of the pending objects that are larger than the build volume. */
+    fun oversizeNames(p: PendingPlacement): List<String> = p.objects.filter(::exceedsVolume).map { it.name }
+
+    private fun finishPlacement(objs: List<PlateObject>, replace: Boolean) {
+        val p = printer
+        if (replace) {
+            cancelSlice()
+            val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth)
+            val oldIds = _beds.value.map { it.id }
+            setBeds(groups.mapIndexed { i, g -> Bed(oldIds.getOrNull(i) ?: nextBedId.getAndIncrement(), g) }, 0)
+            _sliceByBed.value = emptyMap()
+            refreshSlice()
+            say(
+                "Imported ${objs.size} object${if (objs.size == 1) "" else "s"}" +
+                    if (groups.size > 1) " onto ${groups.size} beds" else "",
+            )
+        } else {
+            arrangeIntoActiveBed(plate + objs)
+        }
+        _selected.value = null
+        frameContent()
+    }
+
     private fun addObjects(newOnes: List<PlateObject>) {
         if (newOnes.isEmpty()) return
         val p = printer
@@ -208,20 +523,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 else -> o
             }
         }
-        val all = _objects.value + fitted
-        _objects.value = if (_objects.value.isEmpty() && fitted.size == 1) {
-            listOf(fitted[0].movedTo(p.bedWidth / 2, p.bedDepth / 2))
-        } else Arranger.arrange(all, p.bedWidth, p.bedDepth)
-        _selected.value = fitted.last().id
+        if (plate.isEmpty() && fitted.size == 1) plate = listOf(fitted[0].movedTo(p.bedWidth / 2, p.bedDepth / 2))
+        else arrangeIntoActiveBed(plate + fitted)
+        if (plate.any { it.id == fitted.last().id }) _selected.value = fitted.last().id
     }
 
     private fun updateSelected(f: (PlateObject) -> PlateObject) {
         val id = _selected.value ?: return
-        _objects.value = _objects.value.map { if (it.id == id) f(it) else it }
+        plate = plate.map { if (it.id == id) f(it) else it }
     }
 
     fun moveObject(id: Long, dx: Double, dy: Double) {
-        _objects.value = _objects.value.map { if (it.id == id) it.movedTo(it.x + dx, it.y + dy) else it }
+        plate = plate.map { if (it.id == id) it.movedTo(it.x + dx, it.y + dy) else it }
     }
 
     fun rotateSelected(axis: Char, degrees: Double) = updateSelected { o ->
@@ -255,34 +568,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun duplicateSelected(count: Int = 1) {
         val id = _selected.value ?: return
-        val src = _objects.value.firstOrNull { it.id == id } ?: return
+        val src = plate.firstOrNull { it.id == id } ?: return
         val copies = (1..count).map { src.withId(nextId.getAndIncrement(), src.x, src.y) }
-        _objects.value = Arranger.arrange(_objects.value + copies, printer.bedWidth, printer.bedDepth)
-        _selected.value = copies.last().id
+        arrangeIntoActiveBed(plate + copies)
+        if (plate.any { it.id == copies.last().id }) _selected.value = copies.last().id
     }
 
     fun deleteSelected() {
         val id = _selected.value ?: return
-        _objects.value = _objects.value.filter { it.id != id }
+        plate = plate.filter { it.id != id }
         _selected.value = null
     }
 
+    /** Removes every object and every extra bed. */
     fun clearPlate() {
-        _objects.value = emptyList()
-        _selected.value = null
         cancelSlice()
-        _slice.value = SliceUiState.Idle
+        _selected.value = null
+        setBeds(listOf(Bed(_beds.value.first().id, emptyList())), 0)
+        setSlice(activeBedId, SliceUiState.Idle)
     }
 
+    /** Re-packs every object across all beds, adding or removing beds as needed. */
     fun arrange() {
-        _objects.value = Arranger.arrange(_objects.value, printer.bedWidth, printer.bedDepth)
+        val p = printer
+        val all = _beds.value.flatMap { it.objects }
+        if (all.isEmpty()) return
+        val groups = Arranger.arrangeOnBeds(all, p.bedWidth, p.bedDepth)
+        val oldIds = _beds.value.map { it.id }
+        val list = groups.mapIndexed { i, g -> Bed(oldIds.getOrNull(i) ?: nextBedId.getAndIncrement(), g) }
+        val selectedBed = list.indexOfFirst { b -> b.objects.any { it.id == _selected.value } }
+        setBeds(list, if (selectedBed >= 0) selectedBed else _activeBed.value)
+        if (list.size != oldIds.size) say("Arranged onto ${list.size} bed${if (list.size == 1) "" else "s"}")
     }
+
+    /** Re-packs only the active bed; anything that doesn't fit moves to new beds. */
+    fun arrangeActiveBed() = arrangeIntoActiveBed(plate)
 
     // ------------------------------------------------------------------ slicing
 
     fun startSlice() {
-        val objs = _objects.value
-        if (objs.isEmpty()) { say("Add a model first"); return }
+        val objs = plate
+        val bedId = activeBedId
+        val bedNo = _activeBed.value + 1
+        val multi = _beds.value.size > 1
+        if (objs.isEmpty()) { say(if (multi) "Bed $bedNo is empty" else "Add a model first"); return }
         val p = printer
         if (objs.any { !it.isInside(p.bedWidth, p.bedDepth, p.maxHeight) }) {
             say("Some objects are outside the build volume (shown in red). Use Arrange or move them.")
@@ -293,45 +622,51 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val process = processes.value.working
         val token = CancelToken()
         cancelToken = token
-        _slice.value = SliceUiState.Running("Preparing", 0f)
+        slicingBed = bedId
+        setSlice(bedId, SliceUiState.Running("Preparing", 0f))
         sliceJob = viewModelScope.launch {
             try {
                 val res = withContext(Dispatchers.Default) {
-                    val dir = File(getApplication<Application>().cacheDir, "gcode").apply { mkdirs() }
-                    dir.listFiles()?.forEach { it.delete() }
+                    val dir = gcodeDir(bedId).apply { deleteRecursively(); mkdirs() }
                     val tmp = File(dir, "plate.gcode")
                     var lastUpdate = 0L
                     val result = Slicer(p, filament, process, token).slice(objs.map { it.worldMesh() }, tmp) { stage, f ->
                         val now = System.currentTimeMillis()
-                        if (now - lastUpdate > 60 || f >= 1f) {
+                        if (!token.isCancelled && (now - lastUpdate > 60 || f >= 1f)) {
                             lastUpdate = now
-                            _slice.value = SliceUiState.Running(stage, f)
+                            setSlice(bedId, SliceUiState.Running(stage, f))
                         }
                     }
-                    _slice.value = SliceUiState.Running("Building preview", 1f)
+                    setSlice(bedId, SliceUiState.Running("Building preview", 1f))
                     val preview = PreviewGeometry.build(result.layers) { tp, h ->
                         val area = h * (tp.width - h) + PI * h * h / 4
                         minOf(tp.speed, filament.maxVolumetricSpeed / area, p.maxSpeedXY)
                     }
-                    val name = gcodeName(objs, process.layerHeight, filament.type, result.stats.timeSeconds)
+                    val name = gcodeName(objs, if (multi) bedNo else null, process.layerHeight, filament.type, result.stats.timeSeconds)
                     val finalFile = File(dir, name)
                     tmp.renameTo(finalFile)
                     SliceUiState.Ready(
                         SliceResult(result.layers, result.stats, finalFile, result.warnings), preview, name,
                     )
                 }
-                _slice.value = res
-                _tab.value = Tab.PREVIEW
+                token.check()
+                setSlice(bedId, res)
+                if (activeBedId == bedId) _tab.value = Tab.PREVIEW
+                else say("Bed $bedNo is sliced")
             } catch (e: CancellationException) {
-                if (_slice.value is SliceUiState.Running) _slice.value = SliceUiState.Idle
+                if (cancelToken === token && _sliceByBed.value[bedId] is SliceUiState.Running) setSlice(bedId, SliceUiState.Idle)
             } catch (e: OutOfMemoryError) {
-                _slice.value = SliceUiState.Failed("Out of memory. Try a simpler model or a larger layer height.")
+                setSlice(bedId, SliceUiState.Failed("Out of memory. Try a simpler model or a larger layer height."))
             } catch (e: Throwable) {
                 android.util.Log.e("OrcaPhone", "Slicing failed", e)
-                _slice.value = SliceUiState.Failed(describe(e))
+                setSlice(bedId, SliceUiState.Failed(describe(e)))
+            } finally {
+                if (slicingBed == bedId && cancelToken === token) slicingBed = null
             }
         }
     }
+
+    private fun gcodeDir(bedId: Long) = File(getApplication<Application>().cacheDir, "gcode/bed$bedId")
 
     /** Human-readable error including the exception type and root cause (messages alone can be cryptic). */
     private fun describe(e: Throwable): String {
@@ -348,18 +683,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         cancelToken?.cancel()
         sliceJob?.cancel()
         sliceJob = null
-        if (_slice.value is SliceUiState.Running) _slice.value = SliceUiState.Idle
+        val id = slicingBed ?: return
+        slicingBed = null
+        if (_sliceByBed.value[id] is SliceUiState.Running) setSlice(id, SliceUiState.Idle)
     }
 
     fun dismissSliceError() {
-        if (_slice.value is SliceUiState.Failed) _slice.value = SliceUiState.Idle
+        if (_slice.value is SliceUiState.Failed) setSlice(activeBedId, SliceUiState.Idle)
     }
 
-    private fun gcodeName(objs: List<PlateObject>, layer: Double, type: String, seconds: Double): String {
+    private fun gcodeName(objs: List<PlateObject>, bedNo: Int?, layer: Double, type: String, seconds: Double): String {
         val base = objs.first().name.replace(Regex("[^A-Za-z0-9._-]+"), "_").take(40).ifBlank { "plate" }
         val more = if (objs.size > 1) "_plus${objs.size - 1}" else ""
         val t = NumFmt.duration(seconds).replace(" ", "").replace(Regex("\\d+s$"), "").ifBlank { "1m" }
-        return "${base}${more}_${NumFmt.format(layer, 2)}mm_${type}_$t.gcode"
+        val bed = bedNo?.let { "_bed$it" } ?: ""
+        return "${base}${more}${bed}_${NumFmt.format(layer, 2)}mm_${type}_$t.gcode"
     }
 
     // ------------------------------------------------------------------ export / device

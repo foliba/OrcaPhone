@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Lock
@@ -385,7 +386,7 @@ fun NumberField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSheet(onImport: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, onDismiss: () -> Unit) {
+fun AddSheet(onImport: () -> Unit, onLink: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
             Text("Add to plate", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp))
@@ -395,6 +396,13 @@ fun AddSheet(onImport: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, onDi
                 leadingContent = { Icon(Icons.Outlined.FileOpen, null) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onImport),
+            )
+            ListItem(
+                headlineContent = { Text("From Printables link") },
+                supportingContent = { Text("Paste a printables.com model link and pick its STL files") },
+                leadingContent = { Icon(Icons.Outlined.Link, null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onLink),
             )
             HorizontalDivider(Modifier.padding(horizontal = 20.dp))
             Text("Samples", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,

@@ -27,6 +27,15 @@ jobs:
       - name: Slicer core unit tests
         run: ./gradlew :slicer-core:test
 
+      - name: Printables live API check
+        # Talks to printables.com, so it must not block the build when the site is down or changes.
+        continue-on-error: true
+        env:
+          PRINTABLES_LIVE: "1"
+        run: |
+          set -o pipefail
+          ./gradlew :slicer-core:test --tests '*PrintablesTest.liveBenchy' --rerun -i 2>&1 | { grep -E "Live model|liveBenchy|Exception|Error" || true; }
+
       - name: Build debug APK
         run: |
           set -o pipefail
@@ -45,6 +54,14 @@ jobs:
           if-no-files-found: error
 
   device-test:
+    # Android 11 plus Android 15: newer versions lay out system bars and dialogs differently
+    # (Android 15 caught the Import bar being pushed off-screen).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { api: 30, target: default }
+          - { api: 35, target: google_apis }
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -67,9 +84,9 @@ jobs:
       - name: Instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: ${{ matrix.api }}
           arch: x86_64
-          target: default
+          target: ${{ matrix.target }}
           ram-size: 4096M
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim

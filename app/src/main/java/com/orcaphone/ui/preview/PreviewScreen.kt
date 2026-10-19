@@ -77,6 +77,7 @@ import com.orcaphone.gl.ViewportListener
 import com.orcaphone.ui.AppViewModel
 import com.orcaphone.ui.SliceUiState
 import com.orcaphone.ui.Tab
+import com.orcaphone.ui.components.BedBar
 import com.orcaphone.ui.components.VerticalLayerSlider
 import com.orcaphone.ui.components.Viewport3D
 import com.orcaphone.ui.components.fmt
@@ -99,23 +100,59 @@ fun PreviewScreen(vm: AppViewModel) {
     val printer by vm.printers.collectAsStateWithLifecycle()
     val connections by vm.connections.collectAsStateWithLifecycle()
     val upload by vm.upload.collectAsStateWithLifecycle()
+    val beds by vm.beds.collectAsStateWithLifecycle()
+    val activeBed by vm.activeBed.collectAsStateWithLifecycle()
+    val sliceByBed by vm.sliceByBed.collectAsStateWithLifecycle()
     val ready = slice as? SliceUiState.Ready
+    val multi = beds.size > 1
+    val bedBar: @Composable (Modifier) -> Unit = { m ->
+        if (multi) {
+            BedBar(
+                count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
+                checked = { i -> sliceByBed[beds[i].id].let { it is SliceUiState.Ready && !it.stale } },
+                modifier = m,
+            )
+        }
+    }
 
     if (ready == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.fillMaxSize()) {
+            bedBar(Modifier.align(Alignment.TopCenter).padding(8.dp))
+            Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Outlined.Layers, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(12.dp))
                 val running = slice as? SliceUiState.Running
-                Text(if (running != null) "Slicing… ${(running.progress * 100).roundToInt()}%" else "Nothing sliced yet",
-                    style = MaterialTheme.typography.titleLarge)
+                val bedName = "Bed ${activeBed + 1}"
+                val empty = beds.getOrNull(activeBed)?.objects.isNullOrEmpty()
+                Text(
+                    when {
+                        running != null -> "Slicing… ${(running.progress * 100).roundToInt()}%"
+                        multi -> "$bedName isn't sliced yet"
+                        else -> "Nothing sliced yet"
+                    },
+                    style = MaterialTheme.typography.titleLarge,
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    running?.stage ?: "Arrange your models on the Prepare tab, then tap Slice plate to see every layer here.",
+                    running?.stage ?: when {
+                        multi && empty -> "$bedName is empty. Add models to it on the Prepare tab."
+                        multi -> "Slice $bedName to see every layer here. Each bed is sliced and printed on its own."
+                        else -> "Arrange your models on the Prepare tab, then tap Slice plate to see every layer here."
+                    },
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
                 Spacer(Modifier.height(16.dp))
-                if (running == null) Button(onClick = { vm.setTab(Tab.PREPARE) }) { Text("Go to Prepare") }
+                if (running == null) {
+                    if (multi && !empty) {
+                        Button(onClick = { vm.startSlice() }) { Text("Slice $bedName") }
+                        TextButton(onClick = { vm.setTab(Tab.PREPARE) }) { Text("Go to Prepare") }
+                    } else {
+                        Button(onClick = { vm.setTab(Tab.PREPARE) }) { Text("Go to Prepare") }
+                    }
+                } else {
+                    TextButton(onClick = { vm.cancelSlice() }) { Text("Cancel") }
+                }
             }
         }
         return
@@ -151,6 +188,10 @@ fun PreviewScreen(vm: AppViewModel) {
 
         // top: summary + stale warning
         Column(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(8.dp)) {
+            if (multi) {
+                bedBar(Modifier)
+                Spacer(Modifier.height(6.dp))
+            }
             Surface(
                 onClick = { showDetails = true }, shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f), shadowElevation = 2.dp,
