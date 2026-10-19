@@ -54,6 +54,10 @@ jobs:
           if-no-files-found: error
 
   device-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 34]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -76,7 +80,7 @@ jobs:
       - name: Instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: ${{ matrix.api }}
           arch: x86_64
           target: default
           ram-size: 4096M

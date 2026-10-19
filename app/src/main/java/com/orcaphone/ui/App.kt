@@ -28,8 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orcaphone.ui.cloud.OrcaLoginScreen
 import com.orcaphone.ui.device.DeviceScreen
-import com.orcaphone.ui.importer.ModelLinkDialog
-import com.orcaphone.ui.importer.RemoteImportScreen
 import com.orcaphone.ui.prepare.PrepareScreen
 import com.orcaphone.ui.preview.PreviewScreen
 import com.orcaphone.ui.settings.EditorTarget
@@ -48,28 +46,6 @@ fun OrcaPhoneAppUi(vm: AppViewModel) {
     }
     LaunchedEffect(Unit) {
         vm.cloud.messages.collect { snackbar.showSnackbar(it) }
-    }
-
-    val linkPrompt by vm.linkPrompt.collectAsStateWithLifecycle()
-    val remote by vm.remote.collectAsStateWithLifecycle()
-    if (linkPrompt) {
-        ModelLinkDialog(
-            onLookUp = { vm.closeLinkPrompt(); vm.openModelLink(it) },
-            onDismiss = { vm.closeLinkPrompt() },
-        )
-    }
-    remote?.let { r ->
-        BackHandler { if (r is RemoteImportState.Downloading) vm.cancelRemote() else vm.closeRemote() }
-        RemoteImportScreen(
-            state = r,
-            loadPreview = { vm.repos.remoteModels.preview(it) },
-            isMetered = { vm.isMeteredNetwork() },
-            onImport = { vm.importRemoteFiles(it) },
-            onCancelDownload = { vm.cancelRemote() },
-            onClose = { vm.closeRemote() },
-            onTryAnotherLink = { vm.closeRemote(); vm.openLinkPrompt() },
-        )
-        return
     }
 
     if (login) {

@@ -88,7 +88,7 @@ import com.orcaphone.ui.components.fmt
 import com.orcaphone.ui.settings.EditorTarget
 import kotlin.math.cos
 
-enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY }
+enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY, LINK }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +103,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
     val tick by vm.viewTick.collectAsStateWithLifecycle()
     val beds by vm.beds.collectAsStateWithLifecycle()
     val activeBed by vm.activeBed.collectAsStateWithLifecycle()
+    val remote by vm.remote.collectAsStateWithLifecycle()
     val pending by vm.pending.collectAsStateWithLifecycle()
     var confirmDeleteBed by remember { mutableStateOf<Int?>(null) }
     var overhang by rememberSaveable { mutableStateOf(false) }
@@ -180,7 +181,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                 EmptyBed(activeBed + 1, onDelete = { vm.deleteBed(activeBed) }, modifier = Modifier.align(Alignment.Center))
             } else {
                 EmptyPlate(
-                    onImport = openImport, onLink = { vm.openLinkPrompt() }, onSample = { vm.addSample(it) },
+                    onImport = openImport, onLink = { sheet = PrepareSheet.LINK }, onSample = { vm.addSample(it) },
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -286,7 +287,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
         }
         PrepareSheet.ADD -> AddSheet(
             onImport = { sheet = null; openImport() },
-            onLink = { sheet = null; vm.openLinkPrompt() },
+            onLink = { sheet = PrepareSheet.LINK },
             onSample = { sheet = null; vm.addSample(it) },
             onDismiss = { sheet = null },
         )
@@ -296,7 +297,23 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
             onError = { vm.notify(it) },
             onDismiss = { sheet = null },
         )
+        PrepareSheet.LINK -> com.orcaphone.ui.importer.ModelLinkDialog(
+            onLookUp = { sheet = null; vm.openModelLink(it) },
+            onDismiss = { sheet = null },
+        )
         null -> Unit
+    }
+
+    remote?.let { r ->
+        com.orcaphone.ui.importer.RemoteImportScreen(
+            state = r,
+            loadPreview = { vm.repos.remoteModels.preview(it) },
+            isMetered = { vm.isMeteredNetwork() },
+            onImport = { vm.importRemoteFiles(it) },
+            onCancelDownload = { vm.cancelRemote() },
+            onClose = { vm.closeRemote() },
+            onTryAnotherLink = { vm.closeRemote(); sheet = PrepareSheet.LINK },
+        )
     }
 
     pending?.let { pd ->
