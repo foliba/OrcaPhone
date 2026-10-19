@@ -71,8 +71,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.orcaphone.core.models.RemoteFile
 import com.orcaphone.core.models.RemoteFileKind
 import com.orcaphone.core.models.RemoteModel
@@ -128,7 +126,11 @@ fun ModelLinkDialog(onLookUp: (String) -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-/** Full-screen file picker for a model from a website, with previews, sizes and download progress. */
+/**
+ * Full-screen file picker for a model from a website, with previews, sizes and download progress.
+ * Shown in place of the main UI (not as a Dialog: dialog windows can be sized taller than the visible
+ * screen, which pushed the Import bar off the bottom).
+ */
 @Composable
 fun RemoteImportScreen(
     state: RemoteImportState,
@@ -139,30 +141,25 @@ fun RemoteImportScreen(
     onClose: () -> Unit,
     onTryAnotherLink: () -> Unit,
 ) {
-    Dialog(
-        onDismissRequest = { if (state is RemoteImportState.Downloading) onCancelDownload() else onClose() },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, "Close") }
-                    Text("Import from Printables", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, "Close") }
+                Text("Import from Printables", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            }
+            when (state) {
+                is RemoteImportState.Loading -> Centered {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(16.dp))
+                    Text("Looking up the model…", style = MaterialTheme.typography.titleMedium)
                 }
-                when (state) {
-                    is RemoteImportState.Loading -> Centered {
-                        CircularProgressIndicator()
-                        Spacer(Modifier.height(16.dp))
-                        Text("Looking up the model…", style = MaterialTheme.typography.titleMedium)
-                    }
-                    is RemoteImportState.Failed -> {
-                        val m = state.model
-                        if (m != null && m.files.isEmpty()) NoImportableFiles(m, onTryAnotherLink)
-                        else ErrorContent(state.message, state.pageUrl, onTryAnotherLink)
-                    }
-                    is RemoteImportState.Choose -> FileChooser(state.model, null, loadPreview, isMetered, onImport, onCancelDownload)
-                    is RemoteImportState.Downloading -> FileChooser(state.model, state, loadPreview, isMetered, onImport, onCancelDownload)
+                is RemoteImportState.Failed -> {
+                    val m = state.model
+                    if (m != null && m.files.isEmpty()) NoImportableFiles(m, onTryAnotherLink)
+                    else ErrorContent(state.message, state.pageUrl, onTryAnotherLink)
                 }
+                is RemoteImportState.Choose -> FileChooser(state.model, null, loadPreview, isMetered, onImport, onCancelDownload)
+                is RemoteImportState.Downloading -> FileChooser(state.model, state, loadPreview, isMetered, onImport, onCancelDownload)
             }
         }
     }

@@ -54,13 +54,14 @@ jobs:
           if-no-files-found: error
 
   device-test:
+    # Android 11 plus Android 15: newer versions lay out system bars and dialogs differently
+    # (Android 15 caught the Import bar being pushed off-screen).
     strategy:
       fail-fast: false
       matrix:
         include:
+          - { api: 30, target: default }
           - { api: 35, target: google_apis }
-          - { api: 36, target: google_apis }
-          - { api: 37, target: google_apis }
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
