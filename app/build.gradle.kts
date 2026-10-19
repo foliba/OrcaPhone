@@ -108,7 +108,7 @@ androidComponents {
     onVariants { variant ->
         val name = variant.name.replaceFirstChar { it.uppercase() }
         val bundle = tasks.register<BundleLicenseReport>("bundleLicenseReport$name") {
-            report.set(tasks.named<app.cash.licensee.LicenseeTask>("licensee$name").flatMap { it.jsonOutput })
+            report.set(tasks.named<app.cash.licensee.LicenseeTask>("licenseeAndroid$name").flatMap { it.jsonOutput })
         }
         variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleLicenseReport::outputDir)
     }

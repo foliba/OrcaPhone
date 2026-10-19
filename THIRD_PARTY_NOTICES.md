@@ -8,7 +8,7 @@ licences, is generated at build time by the [licensee](https://github.com/cashap
 plugin and shown in the app under ⋮ → *About & licences*. The build fails if a library has a licence
 that isn't explicitly allowed in `app/build.gradle.kts` (currently Apache-2.0, MIT, BSD-3-Clause and
 JTS under EDL-1.0). Licence texts are in `app/src/main/assets/licenses/`. To see the list locally, run
-`./gradlew :app:licenseeRelease` and open `app/build/reports/licensee/`.
+`./gradlew :app:licenseeAndroidRelease` and open `app/build/reports/licensee/`.
 
 | Component | Copyright | Licence |
 |---|---|---|
