@@ -119,6 +119,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Slice state of the active bed. */
     val slice: StateFlow<SliceUiState> = _slice.asStateFlow()
 
+    private val _linkPrompt = MutableStateFlow(false)
+    /** True while the "paste a model link" dialog is open. */
+    val linkPrompt: StateFlow<Boolean> = _linkPrompt.asStateFlow()
     private val _remote = MutableStateFlow<RemoteImportState?>(null)
     val remote: StateFlow<RemoteImportState?> = _remote.asStateFlow()
     private val _pending = MutableStateFlow<PendingPlacement?>(null)
@@ -334,6 +337,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun isModelLink(text: String) = ModelSources.resolve(text, remoteClient.sources) != null
 
     fun isMeteredNetwork() = remoteClient.isMetered()
+
+    fun openLinkPrompt() { _linkPrompt.value = true }
+
+    fun closeLinkPrompt() { _linkPrompt.value = false }
 
     /** Looks up the model behind a pasted link and shows its importable files. */
     fun openModelLink(text: String) {
