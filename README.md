@@ -93,3 +93,15 @@ Bambu Lab network printing (proprietary protocol — save the G-code instead), a
 (`{if …}` blocks; simple `[placeholder]` / `{placeholder}` values are supported).
 
 Always check the start G-code for your printer before the first print.
+
+## Licence
+
+OrcaPhone is free software: you can redistribute it and/or modify it under the terms of the
+[GNU Affero General Public License v3.0](LICENSE). It comes with ABSOLUTELY NO WARRANTY.
+
+The app bundles printer, filament and process profiles from OrcaSlicer (AGPL-3.0) and uses
+open-source libraries under Apache-2.0 and EDL-1.0; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The app shows the same notices under ⋮ → *About & licences*.
+
+OrcaPhone is an independent project and is not affiliated with or endorsed by OrcaSlicer / SoftFever,
+Prusa Research, Printables or Bambu Lab.

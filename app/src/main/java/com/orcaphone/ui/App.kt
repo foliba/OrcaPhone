@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.orcaphone.ui.about.AboutScreen
 import com.orcaphone.ui.cloud.OrcaLoginScreen
 import com.orcaphone.ui.device.DeviceScreen
 import com.orcaphone.ui.importer.ModelLinkDialog
@@ -42,6 +43,7 @@ fun OrcaPhoneAppUi(vm: AppViewModel) {
     val snackbar = remember { SnackbarHostState() }
     var editor by rememberSaveable { mutableStateOf<EditorTarget?>(null) }
     var login by rememberSaveable { mutableStateOf(false) }
+    var about by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         vm.messages.collect { snackbar.showSnackbar(it) }
@@ -69,6 +71,11 @@ fun OrcaPhoneAppUi(vm: AppViewModel) {
             onClose = { vm.closeRemote() },
             onTryAnotherLink = { vm.closeRemote(); vm.openLinkPrompt() },
         )
+        return
+    }
+
+    if (about) {
+        AboutScreen(onClose = { about = false })
         return
     }
 
@@ -112,7 +119,7 @@ fun OrcaPhoneAppUi(vm: AppViewModel) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                Tab.PREPARE -> PrepareScreen(vm, onEdit = { editor = it })
+                Tab.PREPARE -> PrepareScreen(vm, onEdit = { editor = it }, onAbout = { about = true })
                 Tab.PREVIEW -> PreviewScreen(vm)
                 Tab.DEVICE -> DeviceScreen(vm, onSignIn = { login = true })
             }

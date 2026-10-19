@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.LightMode
 import com.orcaphone.data.ThemeMode
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.AddBox
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.SwapHoriz
 import com.orcaphone.ui.components.BedBar
@@ -92,7 +93,7 @@ enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
+fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () -> Unit = {}) {
     val objects by vm.objects.collectAsStateWithLifecycle()
     val selectedId by vm.selected.collectAsStateWithLifecycle()
     val printer by vm.printers.collectAsStateWithLifecycle()
@@ -213,6 +214,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit) {
                 onArrange = { vm.arrange() },
                 onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
                 onAddBed = { vm.addBed() },
+                onAbout = onAbout,
                 sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
                 onTune = { sheet = PrepareSheet.QUICK },
                 onClear = { vm.clearPlate() },
@@ -530,6 +532,7 @@ private fun ActionBar(
     onAdd: () -> Unit, onArrange: () -> Unit, onTune: () -> Unit, onClear: () -> Unit,
     onSlice: () -> Unit, onCancel: () -> Unit,
     onArrangeBed: (() -> Unit)? = null, onAddBed: () -> Unit = {}, sliceLabel: String = "Slice plate",
+    onAbout: () -> Unit = {},
     dark: Boolean = false, onToggleDark: () -> Unit = {},
 ) {
     Surface(
@@ -587,6 +590,11 @@ private fun ActionBar(
                         text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
                         leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
                         onClick = { menu = false; onClear() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About & licences") },
+                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                        onClick = { menu = false; onAbout() },
                     )
                 }
             }

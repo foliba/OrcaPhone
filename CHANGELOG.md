@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Licence
+- OrcaPhone is now licensed under the GNU Affero General Public License v3.0 (`LICENSE`).
+- New *About & licences* screen (Prepare → ⋮): copyright, no-warranty and licence notice, link to the
+  source code, and the licence texts of all bundled third-party components.
+- `THIRD_PARTY_NOTICES.md` lists the bundled OrcaSlicer profiles and libraries with their licences;
+  README has a licence section and a not-affiliated statement.
+
 ## 0.2.0 — Printables import and multiple beds
 
 Import models straight from Printables links and spread big jobs across several beds.
