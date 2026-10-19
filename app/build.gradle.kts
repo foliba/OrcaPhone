@@ -5,6 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("app.cash.licensee")
 }
 
 android {
@@ -75,4 +76,40 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+}
+
+// Every library in the APK must have an approved licence, otherwise the build fails. The resulting
+// list (with versions and licences) is bundled as assets/licenses/libraries.json and shown on the
+// About & licences screen.
+licensee {
+    allow("Apache-2.0")
+    allow("MIT")
+    allow("BSD-3-Clause")
+    allowDependency("org.locationtech.jts", "jts-core", "1.20.0") {
+        because("dual-licensed EPL-2.0 / EDL-1.0 (BSD-3-Clause); OrcaPhone uses it under EDL-1.0")
+    }
+}
+
+abstract class BundleLicenseReport : DefaultTask() {
+    @get:InputFile
+    abstract val report: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val dir = outputDir.get().asFile.resolve("licenses").apply { mkdirs() }
+        report.get().asFile.copyTo(dir.resolve("libraries.json"), overwrite = true)
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val name = variant.name.replaceFirstChar { it.uppercase() }
+        val bundle = tasks.register<BundleLicenseReport>("bundleLicenseReport$name") {
+            report.set(tasks.named<app.cash.licensee.LicenseeTask>("licensee$name").flatMap { it.jsonOutput })
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleLicenseReport::outputDir)
+    }
 }
