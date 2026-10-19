@@ -56,7 +56,7 @@ class GCodeGenerator(
         const val RETRACT = 2
         const val ZMOVE = 3
         const val M73_MARK = ";@M73 "
-        const val VERSION = "0.2.0"
+        const val VERSION = "0.2.1"
     }
 
     private sealed class Cmd
