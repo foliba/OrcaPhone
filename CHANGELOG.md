@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+- New app icon: a telephone handset acts as the printer's X gantry, with the nozzle hanging from it
+  above the familiar layer stack.
+
 ## 0.2.2 — complete licence list
 
 ### Licences
