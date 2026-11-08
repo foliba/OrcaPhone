@@ -43,6 +43,9 @@ import androidx.compose.material.icons.outlined.LightMode
 import com.orcaphone.data.ThemeMode
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.AddBox
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material3.AssistChip
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -105,6 +108,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     val beds by vm.beds.collectAsStateWithLifecycle()
     val activeBed by vm.activeBed.collectAsStateWithLifecycle()
     val pending by vm.pending.collectAsStateWithLifecycle()
+    val autoCut by vm.autoCut.collectAsStateWithLifecycle()
     var confirmDeleteBed by remember { mutableStateOf<Int?>(null) }
     var overhang by rememberSaveable { mutableStateOf(false) }
     val dark = com.orcaphone.ui.theme.LocalDarkTheme.current
@@ -117,16 +121,31 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
 
     val p = printer.working
     val filamentColor = parseColor(filament.working.colorHex) ?: 0x009688
-    val scene = remember(objects, selectedId, p, overhang, process.working.supportThresholdAngle, filamentColor) {
-        PrepareScene(
-            p.bedWidth, p.bedDepth, p.maxHeight, objects, selectedId,
-            if (overhang) -cos(Math.toRadians(process.working.supportThresholdAngle)).toFloat() else -2f,
-            filamentColor,
-        )
+    val ac = autoCut
+    val faceColors = remember(ac) { ac?.let { autoCutColors(it) } }
+    val scene = remember(objects, selectedId, p, overhang, process.working.supportThresholdAngle, filamentColor, ac, faceColors) {
+        if (ac != null) {
+            // Auto cut: only the part being cut, coloured by its flat faces, not draggable.
+            PrepareScene(
+                p.bedWidth, p.bedDepth, p.maxHeight, objects.filter { it.id == ac.objectId }, null, -2f, filamentColor,
+                faceColors = faceColors, colorsFor = ac.objectId,
+            )
+        } else {
+            PrepareScene(
+                p.bedWidth, p.bedDepth, p.maxHeight, objects, selectedId,
+                if (overhang) -cos(Math.toRadians(process.working.supportThresholdAngle)).toFloat() else -2f,
+                filamentColor,
+            )
+        }
     }
+    BackHandler(enabled = ac != null) { vm.cancelAutoCut() }
     val listener = remember {
         object : ViewportListener {
-            override fun onTapObject(id: Long?) = vm.select(id)
+            override fun onTapObject(id: Long?) { if (vm.autoCut.value == null) vm.select(id) }
+            override fun onTapTriangle(id: Long?, triangle: Int) {
+                val st = vm.autoCut.value ?: return
+                if (id == st.objectId && triangle >= 0) vm.autoCutPick(triangle)
+            }
             override fun onDragObject(id: Long, dx: Double, dy: Double) = vm.moveObject(id, dx, dy)
             override fun onDoubleTap() = vm.frameContent()
         }
@@ -136,7 +155,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     Box(Modifier.fillMaxSize()) {
         Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
 
-        Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
+        if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp))
+        else Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
             PresetBar(
                 printer = p.name, printerDirty = printer.dirty,
                 filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
@@ -176,7 +196,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
         )
 
-        if (objects.isEmpty() && busy == null) {
+        if (objects.isEmpty() && busy == null && ac == null) {
             if (beds.size > 1) {
                 EmptyBed(activeBed + 1, onDelete = { vm.deleteBed(activeBed) }, modifier = Modifier.align(Alignment.Center))
             } else {
@@ -187,7 +207,11 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             }
         }
 
-        Column(
+        if (ac != null) {
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp)) {
+                AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
+            }
+        } else Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -205,6 +229,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
                     onDelete = { vm.deleteSelected() },
                     bedCount = beds.size, activeBed = activeBed,
                     onMoveToBed = { vm.moveSelectedToBed(it) },
+                    tooBig = vm.tooBigForBed(selected),
+                    onAutoCut = { vm.startAutoCut() },
                 )
             }
             ActionBar(
@@ -474,6 +500,7 @@ private fun ObjectPanel(
     onRotate: () -> Unit, onScale: () -> Unit, onLayFlat: () -> Unit, onCenter: () -> Unit,
     onCopy: () -> Unit, onDelete: () -> Unit,
     bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
+    tooBig: Boolean = false, onAutoCut: () -> Unit = {},
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f))) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -502,6 +529,13 @@ private fun ObjectPanel(
                         )
                     }
                 }
+            }
+            if (tooBig) {
+                AssistChip(
+                    onClick = onAutoCut,
+                    label = { Text("Too big for the bed · Auto cut") },
+                    leadingIcon = { Icon(Icons.Outlined.ContentCut, null, Modifier.size(18.dp)) },
+                )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 ToolButton(Icons.Outlined.Rotate90DegreesCcw, "Rotate", onRotate)

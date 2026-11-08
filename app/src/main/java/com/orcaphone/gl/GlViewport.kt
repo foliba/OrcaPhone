@@ -15,6 +15,8 @@ import kotlin.math.hypot
 
 interface ViewportListener {
     fun onTapObject(id: Long?) {}
+    /** Tap on an object: its id and the tapped triangle of its mesh (or null/-1 for empty space). */
+    fun onTapTriangle(id: Long?, triangle: Int) {}
     fun onDragObject(id: Long, dx: Double, dy: Double) {}
     fun onDragEnd() {}
     fun onDoubleTap() {}
@@ -77,9 +79,9 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
                 if (editable) {
                     val sel = renderer.prepare?.selectedId
                     val hit = pick(e.x, e.y)
-                    if (sel != null && hit != null && hit.first == sel) {
+                    if (sel != null && hit != null && hit.id == sel) {
                         dragId = sel
-                        dragPlaneZ = hit.second[2]
+                        dragPlaneZ = hit.point[2]
                         dragLast = planePoint(e.x, e.y, dragPlaneZ)
                     }
                 }
@@ -129,7 +131,11 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
                         lastTapTime = 0
                     } else {
                         lastTapTime = now; lastTapX = e.x; lastTapY = e.y
-                        if (editable) listener?.onTapObject(pick(e.x, e.y)?.first)
+                        if (editable) {
+                            val hit = pick(e.x, e.y)
+                            listener?.onTapObject(hit?.id)
+                            listener?.onTapTriangle(hit?.id, hit?.triangle ?: -1)
+                        }
                     }
                 }
             }
@@ -151,20 +157,23 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
         return doubleArrayOf(r[0] + r[3] * t, r[1] + r[4] * t, z)
     }
 
-    /** Returns the hit object id and world hit point. */
-    private fun pick(sx: Float, sy: Float): Pair<Long, DoubleArray>? {
+    private class Hit(val id: Long, val point: DoubleArray, val triangle: Int)
+
+    /** Returns the hit object, world hit point and mesh triangle. */
+    private fun pick(sx: Float, sy: Float): Hit? {
         if (width == 0 || height == 0) return null
         val r = camera.ray(sx, sy, width, height)
         var bestT = Double.MAX_VALUE
         var best: Long? = null
+        var bestTri = -1
         for (o in objects) {
             val b = o.worldBounds
             if (!rayHitsBox(r, b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ)) continue
-            val t = Picking.rayMesh(r, o) ?: continue
-            if (t < bestT) { bestT = t; best = o.id }
+            val (t, tri) = Picking.rayMeshHit(r, o) ?: continue
+            if (t < bestT) { bestT = t; best = o.id; bestTri = tri }
         }
         val id = best ?: return null
-        return id to doubleArrayOf(r[0] + r[3] * bestT, r[1] + r[4] * bestT, r[2] + r[5] * bestT)
+        return Hit(id, doubleArrayOf(r[0] + r[3] * bestT, r[1] + r[4] * bestT, r[2] + r[5] * bestT), bestTri)
     }
 
     private fun rayHitsBox(r: DoubleArray, x0: Double, y0: Double, z0: Double, x1: Double, y1: Double, z1: Double): Boolean {
@@ -204,7 +213,10 @@ class GlViewport(context: Context, val camera: OrbitCamera) : GLSurfaceView(cont
 
 object Picking {
     /** Möller–Trumbore against the object's mesh in local space. Returns ray parameter t or null. */
-    fun rayMesh(ray: DoubleArray, obj: PlateObject): Double? {
+    fun rayMesh(ray: DoubleArray, obj: PlateObject): Double? = rayMeshHit(ray, obj)?.first
+
+    /** Like [rayMesh], also returning the index of the hit triangle. */
+    fun rayMeshHit(ray: DoubleArray, obj: PlateObject): Pair<Double, Int>? {
         val inv = obj.worldMatrix.inverseAffine()
         val o = DoubleArray(3); inv.transformPoint(ray[0], ray[1], ray[2], o)
         val e = DoubleArray(3); inv.transformPoint(ray[0] + ray[3], ray[1] + ray[4], ray[2] + ray[5], e)
@@ -212,6 +224,7 @@ object Picking {
         val v = obj.mesh.vertices
         val idx = obj.mesh.indices
         var best = Double.MAX_VALUE
+        var bestTri = -1
         for (t in 0 until obj.mesh.triangleCount) {
             val a = idx[t * 3] * 3; val b = idx[t * 3 + 1] * 3; val c = idx[t * 3 + 2] * 3
             val e1x = (v[b] - v[a]).toDouble(); val e1y = (v[b + 1] - v[a + 1]).toDouble(); val e1z = (v[b + 2] - v[a + 2]).toDouble()
@@ -227,8 +240,8 @@ object Picking {
             val w = (dx * qx + dy * qy + dz * qz) * inv2
             if (w < 0 || u + w > 1) continue
             val tt = (e2x * qx + e2y * qy + e2z * qz) * inv2
-            if (tt > 0 && tt < best) best = tt
+            if (tt > 0 && tt < best) { best = tt; bestTri = t }
         }
-        return if (best == Double.MAX_VALUE) null else best
+        return if (best == Double.MAX_VALUE) null else best to bestTri
     }
 }

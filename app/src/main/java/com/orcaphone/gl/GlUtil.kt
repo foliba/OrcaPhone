@@ -61,14 +61,17 @@ object Shaders {
     const val MESH_VS = """#version 300 es
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_nrm;
+layout(location = 2) in vec3 a_col;
 uniform mat4 u_vp;
 uniform mat4 u_model;
 uniform mat3 u_nrm;
 out vec3 v_nrm;
 out vec3 v_world;
+out vec3 v_col;
 void main() {
     vec4 w = u_model * vec4(a_pos, 1.0);
     v_world = w.xyz;
+    v_col = a_col;
     v_nrm = u_nrm * a_nrm;
     gl_Position = u_vp * w;
 }
@@ -78,10 +81,12 @@ void main() {
 precision mediump float;
 in vec3 v_nrm;
 in vec3 v_world;
+in vec3 v_col;
 uniform vec3 u_color;
 uniform vec3 u_eye;
 uniform float u_overhangCos;
 uniform float u_alpha;
+uniform float u_vcol;
 out vec4 o_color;
 void main() {
     vec3 n = normalize(v_nrm);
@@ -89,7 +94,7 @@ void main() {
     if (dot(n, v) < 0.0) n = -n;
     vec3 l1 = normalize(vec3(-0.35, -0.55, 0.9));
     vec3 l2 = normalize(vec3(0.6, 0.45, 0.25));
-    vec3 c = u_color;
+    vec3 c = mix(u_color, v_col, u_vcol);
     if (n.z < u_overhangCos && v_world.z > 0.08) c = mix(c, vec3(0.92, 0.18, 0.12), 0.8);
     float d = 0.32 + 0.6 * max(dot(n, l1), 0.0) + 0.22 * max(dot(n, l2), 0.0);
     float s = pow(max(dot(n, normalize(l1 + v)), 0.0), 40.0) * 0.18;
