@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.2.3**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.3.0**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
@@ -17,6 +17,8 @@ on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.
   author and licence, pick files and import (3MF as geometry only for now)
 - **Multiple beds**: objects that don't fit spill onto extra beds; switch beds with chips/arrows in Prepare and
   Preview, move objects between beds, arrange all beds or just one, slice each bed separately
+- **Auto cut**: parts too big for the printer are cut so every piece fits with 10 mm free around it,
+  joined by dovetails; you pick the side it lies on (flat faces are colour-coded), each piece gets its own bed
 - Tap to select, drag a selected object to move it on the bed
 - Rotate (±15°/±90° per axis), **lay flat** on the largest face, uniform/free scale by % or mm, center, duplicate, delete, auto-arrange
 - Overhang highlighting, out-of-volume warning, auto-scale of models larger than the printer

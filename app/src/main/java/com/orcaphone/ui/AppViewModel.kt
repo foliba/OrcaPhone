@@ -14,6 +14,8 @@ import com.orcaphone.core.math.Mat4
 import com.orcaphone.core.math.Vec3
 import com.orcaphone.core.mesh.MeshLoader
 import com.orcaphone.core.mesh.Primitives
+import com.orcaphone.core.cut.AutoCut
+import com.orcaphone.core.cut.FaceGroups
 import com.orcaphone.core.models.ModelSourceException
 import com.orcaphone.core.models.ModelSources
 import com.orcaphone.core.models.RemoteFile
@@ -72,6 +74,26 @@ sealed interface RemoteImportState {
     data class Downloading(val model: RemoteModel, val fileName: String, val done: Long, val total: Long) : RemoteImportState
 }
 
+/** Auto cut in progress: the user picks the face the part lies on, then the part is cut to fit. */
+data class AutoCutState(
+    val objectId: Long,
+    val objectName: String,
+    /** Flat face groups of the object's mesh, per triangle. */
+    val faces: FaceGroups,
+    /** Tapped triangle, or -1 before the user has chosen. */
+    val triangle: Int = -1,
+    /** Group of the tapped triangle (-1 if it isn't part of a flat area). */
+    val group: Int = -1,
+    /** The chosen face's outward normal, in the object's current world orientation. */
+    val normal: Vec3? = null,
+    /** Plan for the chosen orientation, or null if the printer is too small to cut for. */
+    val plan: AutoCut.Plan? = null,
+    /** Turn the part 90° on the bed (fewer pieces). */
+    val turn90: Boolean = false,
+    /** Cutting progress 0..1 while cutting. */
+    val progress: Float? = null,
+)
+
 /** Imported objects waiting for the user to answer a question before they're placed. */
 data class PendingPlacement(val objects: List<PlateObject>, val step: Step, val replace: Boolean = false) {
     enum class Step { REPLACE_OR_ADD, OVERSIZE }
@@ -124,6 +146,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val linkPrompt: StateFlow<Boolean> = _linkPrompt.asStateFlow()
     private val _remote = MutableStateFlow<RemoteImportState?>(null)
     val remote: StateFlow<RemoteImportState?> = _remote.asStateFlow()
+    private val _autoCut = MutableStateFlow<AutoCutState?>(null)
+    val autoCut: StateFlow<AutoCutState?> = _autoCut.asStateFlow()
+    private var autoCutJob: Job? = null
     private val _pending = MutableStateFlow<PendingPlacement?>(null)
     val pending: StateFlow<PendingPlacement?> = _pending.asStateFlow()
     private var remoteJob: Job? = null
@@ -582,6 +607,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Removes every object and every extra bed. */
     fun clearPlate() {
+        cancelAutoCut()
         cancelSlice()
         _selected.value = null
         setBeds(listOf(Bed(_beds.value.first().id, emptyList())), 0)
@@ -603,6 +629,127 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Re-packs only the active bed; anything that doesn't fit moves to new beds. */
     fun arrangeActiveBed() = arrangeIntoActiveBed(plate)
+
+    // ------------------------------------------------------------------ auto cut
+
+    /** True when [o] is larger than the bed (minus the auto-cut margin) or taller than the printer. */
+    fun tooBigForBed(o: PlateObject): Boolean {
+        val u = AutoCut.usable(printer.bedWidth, printer.bedDepth, printer.maxHeight)
+        val s = o.size
+        return s.x > u.x + 1e-6 || s.y > u.y + 1e-6 || s.z > u.z + 1e-6
+    }
+
+    /** Starts auto cut for the selected object: finds its flat faces, then waits for the user to pick one. */
+    fun startAutoCut() {
+        val obj = plate.firstOrNull { it.id == _selected.value } ?: return
+        autoCutJob?.cancel()
+        autoCutJob = viewModelScope.launch {
+            _busy.value = "Finding flat faces…"
+            val faces = try {
+                withContext(Dispatchers.Default) { FaceGroups.compute(obj.worldMesh()) }
+            } finally {
+                _busy.value = null
+            }
+            _autoCut.value = AutoCutState(obj.id, obj.name, faces)
+            frameContent()
+        }
+    }
+
+    fun cancelAutoCut() {
+        autoCutJob?.cancel()
+        autoCutJob = null
+        _autoCut.value = null
+    }
+
+    /** The user tapped [triangle] of the part: lay the part on that face and plan the cut. */
+    fun autoCutPick(triangle: Int) {
+        val st = _autoCut.value ?: return
+        if (st.progress != null) return
+        val obj = plate.firstOrNull { it.id == st.objectId } ?: return
+        if (triangle !in 0 until obj.mesh.triangleCount) return
+        val group = st.faces.groupOf[triangle]
+        val normal = if (group >= 0) st.faces.normals[group]
+        else obj.worldMatrix.transformDir(obj.mesh.faceNormal(triangle)).normalized()
+        val laid = laidOn(obj, normal, turn90 = false)
+        val p = printer
+        val plan0 = AutoCut.plan(laid.size, p.bedWidth, p.bedDepth, p.maxHeight)
+        val turned = laidOn(obj, normal, turn90 = true)
+        val plan90 = AutoCut.plan(turned.size, p.bedWidth, p.bedDepth, p.maxHeight)
+        val use90 = plan90 != null && (plan0 == null || plan90.parts < plan0.parts)
+        _autoCut.value = st.copy(
+            triangle = triangle, group = group, normal = normal,
+            plan = if (use90) plan90 else plan0, turn90 = use90,
+        )
+    }
+
+    /** [obj] turned so the face with outward [normal] lies on the bed, optionally turned 90° about Z. */
+    private fun laidOn(obj: PlateObject, normal: Vec3, turn90: Boolean): PlateObject {
+        var r = Mat4.rotationBetween(normal, Vec3(0.0, 0.0, -1.0))
+        if (turn90) r = Mat4.rotationZ(PI / 2) * r
+        return obj.rotated(r)
+    }
+
+    /** Cuts the part as planned (or only lays it down when it fits) and puts every piece on its own bed. */
+    fun confirmAutoCut() {
+        val st = _autoCut.value ?: return
+        val normal = st.normal ?: return
+        val plan = st.plan ?: return
+        if (st.progress != null) return
+        val obj = plate.firstOrNull { it.id == st.objectId } ?: run { _autoCut.value = null; return }
+        val laid = laidOn(obj, normal, st.turn90)
+        if (!plan.needsCut) {
+            plate = plate.map { if (it.id == obj.id) laid.movedTo(printer.bedWidth / 2, printer.bedDepth / 2) else it }
+            _autoCut.value = null
+            say("${obj.name} fits without cutting and now lies on the chosen face")
+            frameContent()
+            return
+        }
+        _autoCut.value = st.copy(progress = 0f)
+        autoCutJob = viewModelScope.launch {
+            try {
+                val parts = withContext(Dispatchers.Default) {
+                    AutoCut.cut(laid.worldMesh(), plan) { done, total ->
+                        _autoCut.value = _autoCut.value?.copy(progress = done.toFloat() / total.coerceAtLeast(1))
+                    }
+                }
+                if (parts.isEmpty()) { say("Cutting ${obj.name} failed"); _autoCut.value = null; return@launch }
+                placeCutParts(obj, parts)
+                _autoCut.value = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                android.util.Log.e("OrcaPhone", "Auto cut failed", e)
+                say("Cutting failed: ${e.message ?: e.javaClass.simpleName}")
+                _autoCut.value = st.copy(progress = null)
+            }
+        }
+    }
+
+    /** Replaces [original] with the cut [parts], one part per bed, starting at the original's bed. */
+    private fun placeCutParts(original: PlateObject, parts: List<com.orcaphone.core.mesh.Mesh>) {
+        val p = printer
+        val pieces = parts.mapIndexed { i, m ->
+            PlateObject.create(nextId.getAndIncrement(), "${original.name} ${i + 1}/${parts.size}", m)
+                .movedTo(p.bedWidth / 2, p.bedDepth / 2)
+        }
+        val list = _beds.value.toMutableList()
+        val bedIndex = list.indexOfFirst { b -> b.objects.any { it.id == original.id } }.coerceAtLeast(0)
+        val remaining = list[bedIndex].objects.filter { it.id != original.id }
+        val firstNew: Int
+        if (remaining.isEmpty()) {
+            list[bedIndex] = list[bedIndex].copy(objects = listOf(pieces[0]))
+            list.addAll(bedIndex + 1, pieces.drop(1).map { Bed(nextBedId.getAndIncrement(), listOf(it)) })
+            firstNew = bedIndex
+        } else {
+            list[bedIndex] = list[bedIndex].copy(objects = remaining)
+            list.addAll(bedIndex + 1, pieces.map { Bed(nextBedId.getAndIncrement(), listOf(it)) })
+            firstNew = bedIndex + 1
+        }
+        _selected.value = null
+        setBeds(list, firstNew)
+        frameContent()
+        say("Cut ${original.name} into ${pieces.size} parts on beds ${firstNew + 1}–${firstNew + pieces.size}")
+    }
 
     // ------------------------------------------------------------------ slicing
 

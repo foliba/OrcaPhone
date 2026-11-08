@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — auto cut
+
+### Auto cut
+- Parts that are too big for the printer get a *Too big for the bed · Auto cut* chip. Auto cut first
+  asks which side the part should lie on: drag to turn it, flat faces are shown in different colours,
+  tap one to choose.
+- The part is then cut on a regular grid so every piece fits the bed with at least 10 mm free on each
+  side (and the printer's height). Every cut gets a dovetail joint (tail and slot with 0.2 mm clearance),
+  placed where there is solid material; X/Y joints are vertical so pieces slide together from above.
+- Each piece goes on its own bed. Cut parts are closed (watertight) meshes and slice normally.
+
 ## 0.2.3 — new icon
 
 ### App

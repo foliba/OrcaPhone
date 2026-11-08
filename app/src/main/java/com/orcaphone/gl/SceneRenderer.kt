@@ -23,6 +23,9 @@ class PrepareScene(
     /** cos threshold for overhang highlighting, or -2 to disable. */
     val overhangCos: Float,
     val objectColor: Int,
+    /** Per-triangle RGB colours (3 floats per triangle) for the object [colorsFor], e.g. auto-cut face groups. */
+    val faceColors: FloatArray? = null,
+    val colorsFor: Long? = null,
 )
 
 class PreviewScene(
@@ -57,6 +60,8 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
 
     private class MeshGpu(val vbo: Int, val vertexCount: Int)
     private val meshCache = IdentityHashMap<Mesh, MeshGpu>()
+    /** Meshes uploaded with per-triangle colours, keyed by the colour array. */
+    private val colorCache = IdentityHashMap<FloatArray, MeshGpu>()
 
     private var bedVbo = 0
     private var bedKey = ""
@@ -79,6 +84,7 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         meshCache.clear()
+        colorCache.clear()
         bedKey = ""
         uploadedGeometry = null
         meshProg = GlUtil.program(Shaders.MESH_VS, Shaders.MESH_FS)
@@ -191,9 +197,10 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
 
     // ---------------------------------------------------------------- objects
 
-    private fun upload(mesh: Mesh): MeshGpu {
+    private fun upload(mesh: Mesh, colors: FloatArray? = null): MeshGpu {
         val tc = mesh.triangleCount
-        val buf = ByteBuffer.allocateDirect(tc * 3 * 6 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+        val stride = if (colors != null) 9 else 6
+        val buf = ByteBuffer.allocateDirect(tc * 3 * stride * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         val v = mesh.vertices
         val idx = mesh.indices
         for (t in 0 until tc) {
@@ -205,12 +212,13 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
             if (l > 0) { nx /= l; ny /= l; nz /= l }
             for (k in intArrayOf(a, b, c)) {
                 buf.put(v[k]); buf.put(v[k + 1]); buf.put(v[k + 2]); buf.put(nx); buf.put(ny); buf.put(nz)
+                if (colors != null) { buf.put(colors[t * 3]); buf.put(colors[t * 3 + 1]); buf.put(colors[t * 3 + 2]) }
             }
         }
         buf.position(0)
         val vbo = GlUtil.createBuffer()
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo)
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, tc * 3 * 24, buf, GLES30.GL_STATIC_DRAW)
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, tc * 3 * stride * 4, buf, GLES30.GL_STATIC_DRAW)
         return MeshGpu(vbo, tc * 3)
     }
 
@@ -222,6 +230,11 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
             val e = it.next()
             if (e.key !in live) { GlUtil.deleteBuffer(e.value.vbo); it.remove() }
         }
+        val ci = colorCache.entries.iterator()
+        while (ci.hasNext()) {
+            val e = ci.next()
+            if (e.key !== scene.faceColors) { GlUtil.deleteBuffer(e.value.vbo); ci.remove() }
+        }
         GLES30.glUseProgram(meshProg)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(meshProg, "u_vp"), 1, false, vp, 0)
         val eye = camera.eye()
@@ -231,9 +244,13 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         val modelLoc = GLES30.glGetUniformLocation(meshProg, "u_model")
         val nrmLoc = GLES30.glGetUniformLocation(meshProg, "u_nrm")
         val colorLoc = GLES30.glGetUniformLocation(meshProg, "u_color")
+        val vcolLoc = GLES30.glGetUniformLocation(meshProg, "u_vcol")
         val base = scene.objectColor
         for (obj in scene.objects) {
-            val gpu = meshCache.getOrPut(obj.mesh) { upload(obj.mesh) }
+            val faceColors = scene.faceColors?.takeIf { obj.id == scene.colorsFor && it.size == obj.mesh.triangleCount * 3 }
+            val gpu = if (faceColors != null) colorCache.getOrPut(faceColors) { upload(obj.mesh, faceColors) }
+            else meshCache.getOrPut(obj.mesh) { upload(obj.mesh) }
+            val stride = if (faceColors != null) 36 else 24
             val m = obj.worldMatrix
             GLES30.glUniformMatrix4fv(modelLoc, 1, false, m.toFloatArray(), 0)
             val inv = m.inverseAffine()
@@ -247,15 +264,23 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
                 else -> Triple(((base shr 16) and 0xff) / 255f, ((base shr 8) and 0xff) / 255f, (base and 0xff) / 255f)
             }
             GLES30.glUniform3f(colorLoc, cr, cg, cb)
+            GLES30.glUniform1f(vcolLoc, if (faceColors != null) 1f else 0f)
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, gpu.vbo)
             GLES30.glEnableVertexAttribArray(0)
-            GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 24, 0)
+            GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, stride, 0)
             GLES30.glEnableVertexAttribArray(1)
-            GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, 24, 12)
+            GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, stride, 12)
+            if (faceColors != null) {
+                GLES30.glEnableVertexAttribArray(2)
+                GLES30.glVertexAttribPointer(2, 3, GLES30.GL_FLOAT, false, stride, 24)
+            } else {
+                GLES30.glDisableVertexAttribArray(2)
+            }
             GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, gpu.vertexCount)
         }
         GLES30.glDisableVertexAttribArray(0)
         GLES30.glDisableVertexAttribArray(1)
+        GLES30.glDisableVertexAttribArray(2)
     }
 
     // ---------------------------------------------------------------- preview
