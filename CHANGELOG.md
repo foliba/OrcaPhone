@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — auto cut
 
 ### Auto cut
 - Parts that are too big for the printer get a *Too big for the bed · Auto cut* chip. Auto cut first
