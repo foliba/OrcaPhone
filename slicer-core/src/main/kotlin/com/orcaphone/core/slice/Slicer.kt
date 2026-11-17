@@ -148,7 +148,7 @@ class Slicer(
 
             // 6. G-code
             progress.update("Writing G-code", 0.75f)
-            val gen = GCodeGenerator(printer, filament, p, cancel)
+            val gen = GCodeGenerator(printer, filament, p, cancel, thumbnailMeshes = meshes)
             val stats = gen.generate(result, outFile) { f -> progress.update("Writing G-code", 0.75f + 0.25f * f) }
             progress.update("Done", 1f)
             return SliceResult(result, stats, outFile, warnings)
