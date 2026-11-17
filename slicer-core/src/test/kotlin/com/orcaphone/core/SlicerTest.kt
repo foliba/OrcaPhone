@@ -33,7 +33,9 @@ class SlicerTest {
     private fun place(mesh: Mesh, x: Double = 110.0, y: Double = 110.0) =
         PlateObject.create(1, "m", mesh, x = x, y = y)
 
-    private fun gcodeChecks(gcode: String) {
+    private fun gcodeChecks(full: String) {
+        // Thumbnails are base64 data that can contain anything ("NaN", " X9"…): check only the G-code itself.
+        val gcode = full.replace(Regex("; THUMBNAIL_BLOCK_START[\\s\\S]*?; THUMBNAIL_BLOCK_END\\n"), "")
         // every coordinate must use '.' decimals and stay on the bed
         val xs = Regex(" X(-?[0-9.]+)").findAll(gcode).map { it.groupValues[1].toDouble() }.toList()
         val ys = Regex(" Y(-?[0-9.]+)").findAll(gcode).map { it.groupValues[1].toDouble() }.toList()
