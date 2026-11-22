@@ -47,6 +47,7 @@ class InstancesUiTest {
 
         // Fill bed: as many as fit, on this bed only
         rule.onNodeWithText("Instances").performClick()
+        rule.waitForIdle()
         val max = vm.maxInstances()
         assertTrue("only $max fit", max > 4)
         rule.onNodeWithText("Up to $max fit on bed 1", substring = true).assertIsDisplayed()
@@ -60,7 +61,7 @@ class InstancesUiTest {
         // Asking for more than fits places the maximum and says so
         rule.onNodeWithText("Instances").performClick()
         rule.onNodeWithTag("instanceCount").performTextReplacement("999")
-        rule.onNodeWithText("Only $max fit on bed 1.").assertIsDisplayed()
+        rule.onNodeWithText("Only $max fit on bed 1.").assertExists() // the keyboard may cover it
         rule.onNodeWithText("Place $max").performClick()
         rule.waitForIdle()
         assertEquals(1, vm.beds.value.size)
@@ -88,6 +89,7 @@ class InstancesUiTest {
 
         // The model list shows the model once, with its instance count
         rule.onNodeWithContentDescription("Models").performClick()
+        rule.waitForIdle()
         rule.onNodeWithText("Models on bed 1").assertIsDisplayed()
         rule.onNodeWithTag("instances_Calibration cube", useUnmergedTree = true).assertIsDisplayed()
             .assert(hasText("×4"))

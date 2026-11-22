@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +53,7 @@ fun InstancesSheet(name: String, current: Int, max: Int, bedNumber: Int, onApply
     var text by remember { mutableStateOf(current.coerceAtMost(max.coerceAtLeast(1)).toString()) }
     val n = text.toIntOrNull()
     val tooMany = n != null && n > max
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding()) {
             Text("Instances", style = MaterialTheme.typography.titleLarge)
             Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -106,7 +107,7 @@ data class ModelRow(val firstId: Long, val group: Long, val name: String, val si
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ObjectsSheet(bedNumber: Int, rows: List<ModelRow>, selectedGroup: Long?, onSelect: (Long) -> Unit, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
             Text(
                 "Models on bed $bedNumber", style = MaterialTheme.typography.titleLarge,
