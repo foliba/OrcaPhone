@@ -1,6 +1,7 @@
 package com.orcaphone
 
-import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -38,6 +39,13 @@ class InstancesUiTest {
         }
     }
 
+    /** Waits for a node to be on screen (sheets slide in), failing with [what]. */
+    private fun waitDisplayed(what: String, matcher: SemanticsMatcher, unmerged: Boolean = false) {
+        rule.waitUntil(what, 10_000) {
+            runCatching { rule.onNode(matcher, useUnmergedTree = unmerged).assertIsDisplayed() }.isSuccess
+        }
+    }
+
     @Test
     fun fillBedCountAndGroupEdits() {
         rule.activityRule.scenario.onActivity { vm = ViewModelProvider(it)[AppViewModel::class.java] }
@@ -50,7 +58,7 @@ class InstancesUiTest {
         rule.waitForIdle()
         val max = vm.maxInstances()
         assertTrue("only $max fit", max > 4)
-        rule.onNodeWithText("Up to $max fit on bed 1", substring = true).assertIsDisplayed()
+        waitDisplayed("max hint", hasText("Up to $max fit on bed 1", substring = true))
         rule.onNode(hasText("Fill bed ($max)")).performClick()
         rule.waitForIdle()
         assertEquals(1, vm.beds.value.size)
@@ -90,8 +98,7 @@ class InstancesUiTest {
         // The model list shows the model once, with its instance count
         rule.onNodeWithContentDescription("Models").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("Models on bed 1").assertIsDisplayed()
-        rule.onNodeWithTag("instances_Calibration cube", useUnmergedTree = true).assertIsDisplayed()
-            .assert(hasText("×4"))
+        waitDisplayed("model list", hasText("Models on bed 1"))
+        waitDisplayed("x4 badge", hasTestTag("instances_Calibration cube") and hasText("×4"), unmerged = true)
     }
 }
