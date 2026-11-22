@@ -96,6 +96,12 @@ class InstancesUiTest {
         assertSpaced(objs, 0.0)
 
         // The model list shows the model once, with its instance count
+        // messages ("Filled bed…", "Only N fit…") show in a snackbar over the action bar: let them go first
+        rule.waitUntil("snackbars gone", 30_000) {
+            rule.onAllNodes(
+                hasText("Filled bed", substring = true) or hasText("fit on bed", substring = true) or hasText("no longer fit", substring = true),
+            ).fetchSemanticsNodes().isEmpty()
+        }
         rule.onNodeWithContentDescription("Models").performClick()
         rule.waitForIdle()
         waitDisplayed("model list", hasText("Models on bed 1"))
