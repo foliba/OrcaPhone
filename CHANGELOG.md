@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.1 — instances
+
+### New
+- **Instances** (replaces Copy in the object panel): enter how many instances of the model the bed should
+  hold, or tap **Fill bed**. Instances are laid out on a grid around the bed centre, never on other
+  objects, with enough room between them for two brims side by side and for tree/organic support feet,
+  and along the bed edge for the skirt. The sheet shows how many fit; asking for more places that many
+  and says so. Instances are never put on another bed.
+- Rotating, scaling or laying flat one instance applies to every instance of the model. When instances
+  would then overlap or reach off the bed they are laid out again; if some no longer fit, you are told.
+  Moving, centring and deleting stay per instance.
+- **Model list** (new button next to Add): every model on the bed once, with a ×N badge for its
+  instances. Tap a row to select the model. The object panel also shows the ×N badge.
+
 ## 0.4.0 — OrcaSlicer 2.5.2
 
 ### Printer library

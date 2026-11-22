@@ -21,6 +21,7 @@ import com.orcaphone.core.models.ModelSources
 import com.orcaphone.core.models.RemoteFile
 import com.orcaphone.core.models.RemoteModel
 import com.orcaphone.core.plate.Arranger
+import com.orcaphone.core.plate.Instances
 import com.orcaphone.core.plate.PlateObject
 import com.orcaphone.core.preview.PreviewGeometry
 import com.orcaphone.core.slice.CancelToken
@@ -292,6 +293,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Border kept free along the bed edges when arranging: the skirt and brim must fit on the bed. */
     private val arrangeEdge get() = Arranger.skirtBrimRoom(processes.value.working)
     private val arrangeSpacing get() = Arranger.spacingFor(processes.value.working)
+    /** Gap between instances: brims and supports of neighbours must not touch. */
+    private val instanceSpacing get() = Arranger.instanceSpacingFor(processes.value.working)
     /** Auto cut keeps at least 10 mm, more if the skirt and brim need it. */
     private val cutMargin get() = maxOf(AutoCut.MARGIN, arrangeEdge + 1.0)
 
@@ -561,9 +564,87 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (plate.any { it.id == fitted.last().id }) _selected.value = fitted.last().id
     }
 
+    /**
+     * Applies an orientation or scale change to the selected object and every other instance of the same
+     * model, on every bed. Instances that would then overlap or leave their bed are placed again.
+     */
     private fun updateSelected(f: (PlateObject) -> PlateObject) {
         val id = _selected.value ?: return
-        plate = plate.map { if (it.id == id) f(it) else it }
+        val src = plate.firstOrNull { it.id == id } ?: return
+        val changed = f(src)
+        val group = src.group
+        val list = _beds.value.map { b ->
+            if (b.objects.none { it.group == group }) b
+            else b.copy(objects = b.objects.map { if (it.id == id) changed else if (it.group == group) it.withTransformOf(changed) else it })
+        }
+        var short = 0
+        val refitted = list.map { b ->
+            val (objs, missing) = refitInstances(b.objects, group)
+            short += missing
+            if (objs === b.objects) b else b.copy(objects = objs)
+        }
+        setBeds(refitted, _activeBed.value)
+        if (short > 0) say("$short instance${if (short == 1) "" else "s"} no longer fit${if (short == 1) "s" else ""}: reduce the count with Instances")
+    }
+
+    /**
+     * Re-places the instances of [group] in [objs] (one bed) when they overlap each other or other objects,
+     * or reach off the bed. Returns the objects and how many instances found no free spot (left where they were).
+     */
+    private fun refitInstances(objs: List<PlateObject>, group: Long): Pair<List<PlateObject>, Int> {
+        val members = objs.filter { it.group == group }
+        if (members.size < 2) return objs to 0
+        val p = printer
+        val others = objs.filter { it.group != group }
+        fun overlap(a: com.orcaphone.core.mesh.Bounds3, b: com.orcaphone.core.mesh.Bounds3) =
+            a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY
+        val boxes = members.map { it.worldBounds }
+        val bad = members.any { !it.isInside(p.bedWidth, p.bedDepth, Double.MAX_VALUE) } ||
+            boxes.indices.any { i -> (i + 1 until boxes.size).any { j -> overlap(boxes[i], boxes[j]) } } ||
+            boxes.any { b -> others.any { overlap(b, it.worldBounds) } }
+        if (!bad) return objs to 0
+        val s = members[0].size
+        val spots = Instances.place(s.x, s.y, p.bedWidth, p.bedDepth, instanceSpacing, arrangeEdge, others.map { it.worldBounds }, members.size)
+        val moved = members.mapIndexed { i, m -> spots.getOrNull(i)?.let { (x, y) -> m.movedTo(x, y) } ?: m }.associateBy { it.id }
+        return objs.map { moved[it.id] ?: it } to (members.size - spots.size)
+    }
+
+    /** Number of instances of [o]'s model on the active bed. */
+    fun instanceCount(o: PlateObject): Int = plate.count { it.group == o.group }
+
+    /** Most instances of the selected model that fit on the active bed next to the other objects there. */
+    fun maxInstances(): Int {
+        val src = plate.firstOrNull { it.id == _selected.value } ?: return 0
+        val p = printer
+        val others = plate.filter { it.group != src.group }.map { it.worldBounds }
+        return Instances.max(src.size.x, src.size.y, p.bedWidth, p.bedDepth, instanceSpacing, arrangeEdge, others)
+    }
+
+    /**
+     * Sets how many instances of the selected model the active bed holds, or as many as fit when [count] is null.
+     * Instances are laid out on a grid that keeps room for brim, skirt and supports; never on other beds.
+     */
+    fun setInstances(count: Int?) {
+        val src = plate.firstOrNull { it.id == _selected.value } ?: return
+        val p = printer
+        val members = plate.filter { it.group == src.group }
+        val others = plate.filter { it.group != src.group }
+        val max = Instances.max(src.size.x, src.size.y, p.bedWidth, p.bedDepth, instanceSpacing, arrangeEdge, others.map { it.worldBounds })
+        if (max == 0) { say("${src.name} doesn't fit on this bed next to the other objects"); return }
+        val want = count ?: max
+        val n = want.coerceIn(1, max)
+        val spots = Instances.place(src.size.x, src.size.y, p.bedWidth, p.bedDepth, instanceSpacing, arrangeEdge, others.map { it.worldBounds }, n)
+        // keep the selected instance and the oldest others; add or drop the difference
+        val keep = (listOf(src) + members.filter { it.id != src.id }).take(n)
+        val placed = spots.mapIndexed { i, (x, y) ->
+            keep.getOrNull(i)?.movedTo(x, y) ?: src.instance(nextId.getAndIncrement(), x, y)
+        }
+        plate = others + placed
+        _selected.value = src.id
+        when {
+            count != null && count > max -> say("Only $max instances of ${src.name} fit on bed ${_activeBed.value + 1}")
+            count == null -> say("Filled bed ${_activeBed.value + 1} with $n instances of ${src.name}")
+        }
     }
 
     fun moveObject(id: Long, dx: Double, dy: Double) {
@@ -597,7 +678,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         o.scaled(Vec3(o.scale.x * f, o.scale.y * f, o.scale.z * f))
     }
 
-    fun centerSelected() = updateSelected { it.movedTo(printer.bedWidth / 2, printer.bedDepth / 2) }
+    fun centerSelected() {
+        val id = _selected.value ?: return
+        plate = plate.map { if (it.id == id) it.movedTo(printer.bedWidth / 2, printer.bedDepth / 2) else it }
+    }
 
     fun duplicateSelected(count: Int = 1) {
         val id = _selected.value ?: return

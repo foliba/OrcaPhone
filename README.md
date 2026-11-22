@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.4.0**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.4.1**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
@@ -20,7 +20,10 @@ on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.
 - **Auto cut**: parts too big for the printer are cut so every piece fits with 10 mm free around it,
   joined by dovetails; you pick the side it lies on (flat faces are colour-coded), each piece gets its own bed
 - Tap to select, drag a selected object to move it on the bed
-- Rotate (±15°/±90° per axis), **lay flat** on the largest face, uniform/free scale by % or mm, center, duplicate, delete, auto-arrange
+- Rotate (±15°/±90° per axis), **lay flat** on the largest face, uniform/free scale by % or mm, center, delete, auto-arrange
+- **Instances**: place a number of copies of a model, or fill the bed, spaced so brims, skirt and supports
+  don't touch; changing one instance (rotate, scale, lay flat) changes all of them. The model list shows each
+  model once with its instance count
 - Overhang highlighting, out-of-volume warning, auto-scale of models larger than the printer
 - Printer, filament and process presets with OrcaSlicer semantics (system presets, user presets, *modified* state, Save / Save as / Discard)
 - Quick-settings sheet: layer height, infill density and pattern, walls, shells, supports, brim, vase mode, ironing
