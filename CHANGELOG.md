@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0 — OrcaSlicer 2.5.2
+
+### Printer library
+- The OrcaSlicer printer library (Add from OrcaSlicer library, and the base for Orca Cloud presets) is
+  updated to OrcaSlicer 2.5.2: 12 new printers (BenFab 450, Qidi X-Smart 5, Sovol SV08 MAX 0.2/1.0 mm),
+  265 new filaments (QIDI, PrintaLot, Generic, 3D-Fuel, HATCHBOX, Bambu Lab, Polymaker, Overture, …),
+  37 new process presets, and corrected settings for 45 printers (Flashforge default processes and start
+  G-code, Prusa XL deretraction speed, Sovol SV08 per-nozzle default processes, Snapmaker U1, …).
+  Presets you already added are not changed.
+
+### Orca Cloud
+- A preset that was deleted in Orca Cloud and then created again on the phone is uploaded again
+  (force push, as OrcaSlicer 2.4+ does) instead of staying on the phone only.
+- Switched-off filament overrides are uploaded explicitly so they stay off (matches OrcaSlicer 2.4.2;
+  OrcaPhone already did this, now covered by a test).
+
+### Slicing
+- Tree and organic supports resting on the model keep the support Z distance above it instead of
+  fusing to the part (OrcaSlicer 2.4.0 fixed the same for its tree supports).
+- G-code: new `; estimated first layer printing time (normal mode)` line (the first layer only, as fixed
+  in OrcaSlicer 2.5.2); start G-code can use `chamber_temperature` and `chamber_minimal_temperature`.
+- Arrange, Move to bed and Auto cut leave room along the bed edges for the skirt and brim, and keep
+  parts far enough apart for their brims.
+
 ## 0.3.1 — print time and thumbnails in Mainsail/Fluidd
 
 ### Fixes

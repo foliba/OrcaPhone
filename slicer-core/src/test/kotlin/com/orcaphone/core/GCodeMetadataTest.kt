@@ -48,6 +48,10 @@ class GCodeMetadataTest {
         assertNotNull(Regex("filament\\sused\\s\\[mm\\]\\s=\\s(\\S+)\\n").find(footer))
         assertNotNull(Regex("; first_layer_temperature = (\\d+)").find(footer))
         assertNotNull(Regex("; layer_height = (\\d+\\.?\\d*)").find(footer))
+        // OrcaSlicer 2.5.2: first layer time is the first layer only, so less than the whole print
+        val first = Regex("; estimated first layer printing time \\(normal mode\\) = (.+)").find(g)
+        assertNotNull(first)
+        assertTrue(first.groupValues[1] != time.substringAfter("= "), "first layer time equals total time")
 
         val thumbs = Regex("(thumbnail(?:_[A-Za-z0-9]+)?) begin([;/+=\\w\\s]+?); \\1 end").findAll(g).toList()
         assertEquals(2, thumbs.size)
@@ -63,6 +67,18 @@ class GCodeMetadataTest {
             assertTrue((img.getRGB(img.width / 2, img.height / 2) ushr 24) > 200, "centre pixel opaque")
             assertEquals(0, img.getRGB(0, 0) ushr 24, "corner transparent")
         }
+    }
+
+    @Test
+    fun chamberPlaceholdersFromOrcaSlicerStartGcode() {
+        // OrcaSlicer 2.4.1 start macros can pass chamber_minimal_temperature; OrcaPhone fills in 0 (no chamber control).
+        val printer = BuiltinProfiles.printers.first().copy(startGcode = "PRINT_START CHAMBER=[chamber_temperature] CHAMBER_MIN={chamber_minimal_temperature}")
+        val process = BuiltinProfiles.processes.first { it.id == "builtin-0.20" }
+        val mesh = Primitives.box(10.0, 10.0, 2.0).transformed(Mat4.translation(printer.bedWidth / 2, printer.bedDepth / 2, 1.0))
+        val out = File.createTempFile("chamber", ".gcode")
+        Slicer(printer, BuiltinProfiles.filaments.first(), process).slice(listOf(mesh), out) { _, _ -> }
+        val g = out.readText(); out.delete()
+        assertTrue(g.contains("PRINT_START CHAMBER=0 CHAMBER_MIN=0"), "placeholders not filled")
     }
 
     @Test

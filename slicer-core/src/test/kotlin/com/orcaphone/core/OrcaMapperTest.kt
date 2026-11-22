@@ -16,6 +16,35 @@ class OrcaMapperTest {
     private val catalog by lazy { OrcaCatalog.load() }
 
     @Test
+    fun disabledOverrideIsUploadedExplicitly() {
+        // OrcaSlicer 2.4.2: "Disabled overrides are now always saved explicitly, so they stay off."
+        // The cloud preset inherits a retraction override from its parent; switching it off on the phone
+        // must write "nil", otherwise the inherited value would come back after the next sync.
+        val previous = mapOf("name" to "My PLA", "inherits" to "Generic PLA @System")
+        val imported = com.orcaphone.core.config.FilamentProfile(id = "f", name = "My PLA", retractionLengthOverride = 0.8)
+        val off = imported.copy(retractionLengthOverride = 0.0)
+        val out = M.buildContent(OrcaKind.FILAMENT, "My PLA", off, imported, previous)
+        assertEquals("nil", out["filament_retraction_length"])
+        // and an unchanged override is not touched
+        val same = M.buildContent(OrcaKind.FILAMENT, "My PLA", imported, imported, previous)
+        assertTrue("filament_retraction_length" !in same)
+    }
+
+    @Test
+    fun catalogIsFromOrcaSlicer252() {
+        val c = catalog
+        // Printers and presets added between 2.5.0 and 2.5.2
+        for (n in listOf("BenFab 450 0.4 nozzle", "Qidi X-Smart 5 0.4 nozzle", "Sovol SV08 MAX 1.0 nozzle")) {
+            assertTrue(c.get(OrcaKind.PRINTER, n) != null, n)
+        }
+        assertTrue(c.get(OrcaKind.PROCESS, "0.50mm Standard @Sovol SV08 MAX 1.0 nozzle") != null)
+        // 2.5.0: SV08 nozzles default to their own process presets; Prusa XL deretraction speed fixed
+        assertEquals("0.20mm Standard @Sovol SV08 0.4 nozzle", c.get(OrcaKind.PRINTER, "Sovol SV08 0.4 nozzle")!!["default_print_profile"])
+        assertEquals("25", c.get(OrcaKind.PRINTER, "Prusa XL 0.4 nozzle")!!["deretraction_speed"]?.split(",", ";")?.first()?.trim()?.removeSuffix(".0"))
+        assertTrue(c.names(OrcaKind.PRINTER).size >= 1643)
+    }
+
+    @Test
     fun catalogLoadsAndResolvesSystemPresets() {
         val t0 = System.currentTimeMillis()
         val c = OrcaCatalog.load()

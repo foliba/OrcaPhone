@@ -90,6 +90,8 @@ data class AutoCutState(
     val plan: AutoCut.Plan? = null,
     /** Turn the part 90° on the bed (fewer pieces). */
     val turn90: Boolean = false,
+    /** Free border around each piece on its bed, mm (10 mm, more if skirt and brim need it). */
+    val margin: Double = AutoCut.MARGIN,
     /** Cutting progress 0..1 while cutting. */
     val progress: Float? = null,
 )
@@ -252,7 +254,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         var list = _beds.value.mapIndexed { i, b -> if (i == a) b.copy(objects = b.objects.filter { it.id != id }) else b }
         val dest = target ?: list.size.also { list = list + Bed(nextBedId.getAndIncrement(), emptyList()) }
         val existing = list[dest].objects
-        val spot = Arranger.findFreeSpot(existing, obj.size.x, obj.size.y, p.bedWidth, p.bedDepth)
+        val spot = Arranger.findFreeSpot(existing, obj.size.x, obj.size.y, p.bedWidth, p.bedDepth, arrangeSpacing, arrangeEdge)
         val moved = obj.movedTo(spot?.first ?: (p.bedWidth / 2), spot?.second ?: (p.bedDepth / 2))
         list = list.mapIndexed { i, b -> if (i == dest) b.copy(objects = b.objects + moved) else b }
         setBeds(list, a)
@@ -265,7 +267,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Packs [objs] onto the active bed, opening new beds right after it for whatever doesn't fit. */
     private fun arrangeIntoActiveBed(objs: List<PlateObject>) {
         val p = printer
-        val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth).ifEmpty { listOf(emptyList()) }
+        val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth, arrangeSpacing, arrangeEdge).ifEmpty { listOf(emptyList()) }
         val a = _activeBed.value
         val list = _beds.value.toMutableList()
         list[a] = list[a].copy(objects = groups[0])
@@ -286,6 +288,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------------ plate
 
     private val printer get() = printers.value.working
+
+    /** Border kept free along the bed edges when arranging: the skirt and brim must fit on the bed. */
+    private val arrangeEdge get() = Arranger.skirtBrimRoom(processes.value.working)
+    private val arrangeSpacing get() = Arranger.spacingFor(processes.value.working)
+    /** Auto cut keeps at least 10 mm, more if the skirt and brim need it. */
+    private val cutMargin get() = maxOf(AutoCut.MARGIN, arrangeEdge + 1.0)
 
     fun frameBed() {
         val p = printer
@@ -514,7 +522,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val p = printer
         if (replace) {
             cancelSlice()
-            val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth)
+            val groups = Arranger.arrangeOnBeds(objs, p.bedWidth, p.bedDepth, arrangeSpacing, arrangeEdge)
             val oldIds = _beds.value.map { it.id }
             setBeds(groups.mapIndexed { i, g -> Bed(oldIds.getOrNull(i) ?: nextBedId.getAndIncrement(), g) }, 0)
             _sliceByBed.value = emptyMap()
@@ -619,7 +627,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val p = printer
         val all = _beds.value.flatMap { it.objects }
         if (all.isEmpty()) return
-        val groups = Arranger.arrangeOnBeds(all, p.bedWidth, p.bedDepth)
+        val groups = Arranger.arrangeOnBeds(all, p.bedWidth, p.bedDepth, arrangeSpacing, arrangeEdge)
         val oldIds = _beds.value.map { it.id }
         val list = groups.mapIndexed { i, g -> Bed(oldIds.getOrNull(i) ?: nextBedId.getAndIncrement(), g) }
         val selectedBed = list.indexOfFirst { b -> b.objects.any { it.id == _selected.value } }
@@ -634,7 +642,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** True when [o] is larger than the bed (minus the auto-cut margin) or taller than the printer. */
     fun tooBigForBed(o: PlateObject): Boolean {
-        val u = AutoCut.usable(printer.bedWidth, printer.bedDepth, printer.maxHeight)
+        val u = AutoCut.usable(printer.bedWidth, printer.bedDepth, printer.maxHeight, cutMargin)
         val s = o.size
         return s.x > u.x + 1e-6 || s.y > u.y + 1e-6 || s.z > u.z + 1e-6
     }
@@ -672,13 +680,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         else obj.worldMatrix.transformDir(obj.mesh.faceNormal(triangle)).normalized()
         val laid = laidOn(obj, normal, turn90 = false)
         val p = printer
-        val plan0 = AutoCut.plan(laid.size, p.bedWidth, p.bedDepth, p.maxHeight)
+        val plan0 = AutoCut.plan(laid.size, p.bedWidth, p.bedDepth, p.maxHeight, cutMargin)
         val turned = laidOn(obj, normal, turn90 = true)
-        val plan90 = AutoCut.plan(turned.size, p.bedWidth, p.bedDepth, p.maxHeight)
+        val plan90 = AutoCut.plan(turned.size, p.bedWidth, p.bedDepth, p.maxHeight, cutMargin)
         val use90 = plan90 != null && (plan0 == null || plan90.parts < plan0.parts)
         _autoCut.value = st.copy(
             triangle = triangle, group = group, normal = normal,
-            plan = if (use90) plan90 else plan0, turn90 = use90,
+            plan = if (use90) plan90 else plan0, turn90 = use90, margin = cutMargin,
         )
     }
 

@@ -132,14 +132,14 @@ fun AutoCutPanel(
                 val plan = st.plan
                 Text(
                     when {
-                        plan == null -> "This printer's bed is too small to cut for: it needs at least ${fmt(2 * AutoCut.MARGIN + AutoCut.JOINT + 5, 0)} mm."
+                        plan == null -> "This printer's bed is too small to cut for: it needs at least ${fmt(2 * st.margin + AutoCut.JOINT + 5, 0)} mm."
                         !plan.needsCut -> "Fits on the bed this way, no cut needed."
                         else -> {
                             val c = plan.counts
                             val grid = listOfNotNull(c[0].takeIf { it > 1 }, c[1].takeIf { it > 1 }, c[2].takeIf { it > 1 }).joinToString(" × ")
                             "Cut into $grid = ${plan.parts} parts joined by dovetails, " +
                                 "each up to ${fmt(plan.pieceSize.x, 0)} × ${fmt(plan.pieceSize.y, 0)} × ${fmt(plan.pieceSize.z, 0)} mm " +
-                                "with ${fmt(AutoCut.MARGIN, 0)} mm free around it on its own bed."
+                                "with ${fmt(st.margin, 0)} mm free around it on its own bed."
                         }
                     },
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,

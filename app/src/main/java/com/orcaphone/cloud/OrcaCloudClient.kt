@@ -277,8 +277,12 @@ class OrcaCloudClient(
         return PullResult(ups, dels, if (resynced) 0 else next, r.code, sample)
     }
 
-    /** POST /api/v1/sync/push (optimistic concurrency via original_updated_time). */
-    fun push(id: String, name: String, content: Map<String, String>, originalUpdatedTime: Long?): PushResult {
+    /**
+     * POST /api/v1/sync/push (optimistic concurrency via original_updated_time), or with [force]
+     * /api/v1/sync/force-push, which OrcaSlicer 2.4+ uses to re-create a preset whose id was deleted
+     * in the cloud (the server keeps a tombstone and rejects a normal push).
+     */
+    fun push(id: String, name: String, content: Map<String, String>, originalUpdatedTime: Long?, force: Boolean = false): PushResult {
         val body = buildJsonObject {
             put("id", id)
             put("name", name)
@@ -286,7 +290,7 @@ class OrcaCloudClient(
             if (originalUpdatedTime != null && originalUpdatedTime > 0) put("original_updated_time", originalUpdatedTime.toString())
         }.toString()
         if (body.length > 1_048_576) return PushResult(false, 413, message = "Preset is larger than the 1 MB cloud limit")
-        val r = call("POST", "/api/v1/sync/push", body)
+        val r = call("POST", if (force) "/api/v1/sync/force-push" else "/api/v1/sync/push", body)
         if (r.code == 409) {
             val o = runCatching { json.parseToJsonElement(r.body) as? JsonObject }.getOrNull()
             val server = (o?.get("server_profile") as? JsonObject)?.let(::profileFrom)

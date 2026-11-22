@@ -29,12 +29,13 @@ object AutoCut {
         val needsCut: Boolean get() = parts > 1
     }
 
-    /** Usable build volume after the [MARGIN] on every side of the bed. */
-    fun usable(bedW: Double, bedD: Double, maxH: Double) = Vec3(bedW - 2 * MARGIN, bedD - 2 * MARGIN, maxH)
+    /** Usable build volume after [margin] (at least [MARGIN]) on every side of the bed. */
+    fun usable(bedW: Double, bedD: Double, maxH: Double, margin: Double = MARGIN) =
+        Vec3(bedW - 2 * maxOf(MARGIN, margin), bedD - 2 * maxOf(MARGIN, margin), maxH)
 
     /** How many pieces a part of [size] needs, or null if the bed is too small to cut for. */
-    fun plan(size: Vec3, bedW: Double, bedD: Double, maxH: Double): Plan? {
-        val u = usable(bedW, bedD, maxH)
+    fun plan(size: Vec3, bedW: Double, bedD: Double, maxH: Double, margin: Double = MARGIN): Plan? {
+        val u = usable(bedW, bedD, maxH, margin)
         val dims = listOf(size.x to u.x, size.y to u.y, size.z to u.z)
         val counts = dims.map { (s, room) ->
             when {
