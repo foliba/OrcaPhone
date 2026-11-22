@@ -58,7 +58,7 @@ class GCodeGenerator(
         const val RETRACT = 2
         const val ZMOVE = 3
         const val M73_MARK = ";@M73 "
-        const val VERSION = "0.3.1"
+        const val VERSION = "0.4.0"
         /** Thumbnail sizes: a large preview and a small list icon, as Mainsail/Fluidd/printer screens use. */
         val THUMBNAILS = listOf(300 to 300, 32 to 32)
     }
@@ -202,11 +202,17 @@ class GCodeGenerator(
 
     private fun String.containsCommand(cmd: String) = lineSequence().any { it.trim().uppercase().startsWith(cmd) }
 
+    /** The first layer alone, without the start G-code (OrcaSlicer 2.5.2 fixed the same distinction). */
+    private fun firstLayerTime(s: PrintStats) = s.layerTimes.firstOrNull() ?: 0.0
+
     private fun placeholderValues(layerCount: Int, maxZ: Double): MutableMap<String, String> {
         fun n(v: Double) = NumFmt.format(v, 3)
         return mutableMapOf(
             "nozzle_temperature_initial_layer" to filament.nozzleTempInitial.toString(),
             "first_layer_temperature" to filament.nozzleTempInitial.toString(),
+            // OrcaSlicer 2.4.1 start G-code can reference the chamber targets; OrcaPhone has no chamber control.
+            "chamber_temperature" to "0",
+            "chamber_minimal_temperature" to "0",
             "nozzle_temperature" to filament.nozzleTemp.toString(),
             "temperature" to filament.nozzleTemp.toString(),
             "bed_temperature_initial_layer_single" to filament.bedTempInitial.toString(),
@@ -523,6 +529,7 @@ class GCodeGenerator(
         append("; filament = ").append(filament.name).append('\n')
         append("; process = ").append(p.name).append('\n')
         append("; estimated printing time (normal mode) = ").append(NumFmt.duration(s.timeSeconds)).append('\n')
+        append("; estimated first layer printing time (normal mode) = ").append(NumFmt.duration(firstLayerTime(s))).append('\n')
         append("; total layer number: ").append(s.layerCount).append('\n')
         append("; filament used [mm] = "); NumFmt.append(this, s.filamentMm, 2); append('\n')
         append("; filament used [g] = "); NumFmt.append(this, s.filamentGrams, 2); append('\n')
@@ -553,6 +560,7 @@ class GCodeGenerator(
         append("\n; filament cost = "); NumFmt.append(this, s.cost, 2)
         append("\n; total layers count = ").append(s.layerCount)
         append("\n; estimated printing time (normal mode) = ").append(NumFmt.duration(s.timeSeconds))
+        append("\n; estimated first layer printing time (normal mode) = ").append(NumFmt.duration(firstLayerTime(s)))
         append("\n; layer_height = "); NumFmt.append(this, p.layerHeight, 3)
         append("\n; first_layer_height = "); NumFmt.append(this, p.initialLayerHeight, 3)
         append("\n; nozzle_diameter = "); NumFmt.append(this, printer.nozzleDiameter, 2)

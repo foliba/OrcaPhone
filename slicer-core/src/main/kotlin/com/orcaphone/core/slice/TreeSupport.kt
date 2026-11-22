@@ -40,6 +40,8 @@ object TreeSupportGenerator {
         var parents: MutableList<Node>? = null
         var endsOnModel = false
         var alive = false
+        /** Kept for the branch structure but not printed: the support Z gap above a model surface. */
+        var hidden = false
     }
 
     private class Collider(region: Geometry) {
@@ -194,6 +196,17 @@ object TreeSupportGenerator {
             }
         }
 
+        // 3b. a branch resting on the model stops `gap` layers above it, keeping the support Z distance so it
+        //     doesn't fuse to the part (as OrcaSlicer 2.4 fixed for its tree supports).
+        fun hideUp(nd: Node, below: Int) {
+            if (nd.layer >= below || nd.hidden) return
+            nd.hidden = true
+            nd.parents?.forEach { hideUp(it, below) }
+        }
+        for (j in 1 until n) for (node in nodesByLayer[j]) {
+            if (node.alive && node.child == null) hideUp(node, j + gap)
+        }
+
         // 4. organic: smooth every branch into a curve (tips and feet stay put), then re-check clearance
         if (prm.organic) {
             val all = nodesByLayer.flatMap { l -> l.filter { it.alive } }
@@ -238,7 +251,7 @@ object TreeSupportGenerator {
         runner.forEach(n) { j ->
             // organic feet flare out over the first layers for better adhesion
             val flare = if (prm.organic && j < 3) (3 - j) * 0.6 else 0.0
-            val circles = nodesByLayer[j].filter { it.alive }.map {
+            val circles = nodesByLayer[j].filter { it.alive && !it.hidden }.map {
                 BufferOp.bufferOp(Geo.factory.createPoint(Coordinate(it.x, it.y)), it.r + flare, circleParams)
             }
             if (circles.isEmpty() && ifaceParts[j].isEmpty()) return@forEach

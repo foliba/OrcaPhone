@@ -69,6 +69,22 @@ class PlateObject private constructor(
 
 object Arranger {
     /**
+     * Room the first-layer skirt and brim need around a part (mm), so arranged or cut parts don't push
+     * them off the bed. Mirrors OrcaSlicer leaving room for the skirt when it arranges.
+     */
+    fun skirtBrimRoom(p: com.orcaphone.core.config.ProcessProfile): Double {
+        val brim = if (p.brimType != com.orcaphone.core.config.BrimType.NONE) p.brimWidth + p.brimObjectGap else 0.0
+        val skirt = if (p.skirtLoops > 0) p.skirtDistance + p.skirtLoops * p.initialLayerLineWidth else 0.0
+        return brim + skirt
+    }
+
+    /** Gap between arranged parts: enough for two brims side by side. */
+    fun spacingFor(p: com.orcaphone.core.config.ProcessProfile): Double {
+        val brim = if (p.brimType != com.orcaphone.core.config.BrimType.NONE) p.brimWidth + p.brimObjectGap else 0.0
+        return maxOf(6.0, 2 * brim + 1.0)
+    }
+
+    /**
      * Shelf-packs objects (by XY footprint) centred on the bed. Returns the moved objects in the same order.
      * Objects that do not fit keep being packed in rows past the bed edge so the user can see the overflow.
      */
@@ -112,7 +128,12 @@ object Arranger {
      * except an object that is larger than the bed on its own, which gets a bed to itself.
      * Each bed's layout is centred. Objects keep their relative order within a bed.
      */
-    fun arrangeOnBeds(objects: List<PlateObject>, bedW: Double, bedD: Double, spacing: Double = 6.0): List<List<PlateObject>> {
+    fun arrangeOnBeds(
+        objects: List<PlateObject>, bedW: Double, bedD: Double, spacing: Double = 6.0,
+        /** Free border kept along every bed edge (room for skirt and brim). */
+        edge: Double = 0.0,
+    ): List<List<PlateObject>> {
+        val roomW = bedW - 2 * edge; val roomD = bedD - 2 * edge
         if (objects.isEmpty()) return emptyList()
         val eps = 1e-6
         class Row(val y0: Double, val h: Double) {
@@ -127,10 +148,10 @@ object Arranger {
             var placed = false
             for (bin in bins) {
                 if (bin.closed) continue
-                val row = bin.rows.firstOrNull { s.y <= it.h + eps && it.cursor + s.x <= bedW + eps }
+                val row = bin.rows.firstOrNull { s.y <= it.h + eps && it.cursor + s.x <= roomW + eps }
                     ?: run {
                         val y0 = bin.used + spacing
-                        if (s.x <= bedW + eps && y0 + s.y <= bedD + eps) Row(y0, s.y).also { bin.rows.add(it) } else null
+                        if (s.x <= roomW + eps && y0 + s.y <= roomD + eps) Row(y0, s.y).also { bin.rows.add(it) } else null
                     }
                 if (row != null) {
                     row.items.add(i to row.cursor); row.cursor += s.x + spacing
@@ -138,7 +159,7 @@ object Arranger {
                 }
             }
             if (!placed) {
-                val bin = Bin(closed = s.x > bedW + eps || s.y > bedD + eps); val row = Row(0.0, s.y)
+                val bin = Bin(closed = s.x > roomW + eps || s.y > roomD + eps); val row = Row(0.0, s.y)
                 row.items.add(i to 0.0); row.cursor = s.x + spacing
                 bin.rows.add(row); bins.add(bin)
             }
@@ -161,15 +182,17 @@ object Arranger {
      * Finds the free spot closest to the bed centre for an object of footprint [sx] x [sy] that keeps [spacing]
      * from [existing] objects, or null if there is none.
      */
-    fun findFreeSpot(existing: List<PlateObject>, sx: Double, sy: Double, bedW: Double, bedD: Double, spacing: Double = 6.0): Pair<Double, Double>? {
-        if (sx > bedW || sy > bedD) return null
+    fun findFreeSpot(
+        existing: List<PlateObject>, sx: Double, sy: Double, bedW: Double, bedD: Double, spacing: Double = 6.0, edge: Double = 0.0,
+    ): Pair<Double, Double>? {
+        if (sx > bedW - 2 * edge || sy > bedD - 2 * edge) return null
         val boxes = existing.map { it.worldBounds }
         val step = 4.0
         val candidates = ArrayList<Pair<Double, Double>>()
-        var y = sy / 2
-        while (y <= bedD - sy / 2 + 1e-9) {
-            var x = sx / 2
-            while (x <= bedW - sx / 2 + 1e-9) { candidates.add(x to y); x += step }
+        var y = edge + sy / 2
+        while (y <= bedD - edge - sy / 2 + 1e-9) {
+            var x = edge + sx / 2
+            while (x <= bedW - edge - sx / 2 + 1e-9) { candidates.add(x to y); x += step }
             y += step
         }
         candidates.add(bedW / 2 to bedD / 2)

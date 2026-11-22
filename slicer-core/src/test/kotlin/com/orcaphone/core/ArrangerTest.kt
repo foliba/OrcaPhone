@@ -55,6 +55,25 @@ class ArrangerTest {
     }
 
     @Test
+    fun keepsRoomForSkirtAndBrim() {
+        // A part 205 mm wide fits a 220 mm bed, but not with 10 mm kept free on each side for skirt and brim.
+        val wide = box(1, 205.0, 50.0)
+        assertEquals(1, Arranger.arrangeOnBeds(listOf(wide, box(2, 205.0, 50.0)), 220.0, 220.0).size)
+        val beds = Arranger.arrangeOnBeds(listOf(box(3, 190.0, 50.0), box(4, 190.0, 50.0), box(5, 190.0, 100.0)), 220.0, 220.0, edge = 10.0)
+        for (bed in beds) for (o in bed) {
+            val b = o.worldBounds
+            assertTrue(b.minX >= 10 - 1e-6 && b.maxX <= 210 + 1e-6 && b.minY >= 10 - 1e-6 && b.maxY <= 210 + 1e-6, "$b")
+        }
+        assertEquals(2, beds.size) // 50 + 50 + 100 + gaps > 200 mm of usable depth
+        val room = Arranger.skirtBrimRoom(
+            com.orcaphone.core.config.ProcessProfile(id = "p", name = "p", skirtLoops = 2, skirtDistance = 3.0,
+                brimType = com.orcaphone.core.config.BrimType.OUTER, brimWidth = 5.0, brimObjectGap = 0.1, initialLayerLineWidth = 0.5),
+        )
+        assertEquals(5.1 + 3.0 + 1.0, room, 1e-9)
+        assertNull(Arranger.findFreeSpot(emptyList(), 205.0, 40.0, 220.0, 220.0, edge = 10.0))
+    }
+
+    @Test
     fun freeSpot() {
         val bedObj = box(1, 50.0, 50.0).movedTo(110.0, 110.0)
         val spot = assertNotNull(Arranger.findFreeSpot(listOf(bedObj), 40.0, 40.0, 220.0, 220.0))

@@ -57,6 +57,28 @@ class TreeSupportTest {
         assertTrue(mid.isNotEmpty() && mid.all { it.closed }, "organic branches should be walls only")
     }
 
+    /** A roof slab held by a column at one end, with a lower block under the slab: branches must rest on the block. */
+    private fun ledge(): Mesh = Mesh.merge(listOf(
+        Primitives.box(60.0, 20.0, 10.0).transformed(Mat4.translation(0.0, 0.0, 5.0)),
+        Primitives.box(6.0, 20.0, 30.0).transformed(Mat4.translation(-27.0, 0.0, 15.0)),
+        Primitives.box(60.0, 20.0, 3.0).transformed(Mat4.translation(0.0, 0.0, 31.5)),
+    ))
+
+    @Test
+    fun branchesKeepTheZGapAboveTheModel() {
+        // OrcaSlicer 2.4.0: tree supports keep vertical clearance from object top surfaces they rest on.
+        for (type in listOf(SupportType.TREE, SupportType.ORGANIC)) {
+            val layers = slice(ledge(), type, name = "ledge-$type")
+            fun supportOverBlock(l: LayerToolpaths) = l.paths.filter { it.feature == Feature.SUPPORT || it.feature == Feature.SUPPORT_INTERFACE }
+                .any { p -> (0 until p.pointCount).any { k -> p.points[k * 2] in 128.0..178.0 && p.points[k * 2 + 1] in 142.0..158.0 } }
+            // the block top is at z = 10: the layer right above it stays free of support (gap = support Z distance)
+            val gapLayer = layers.first { it.z > 10.0 + 1e-6 }
+            assertTrue(!supportOverBlock(gapLayer), "$type: support touches the block top at z=${gapLayer.z}")
+            // but the slab is still held up from the block
+            assertTrue(layers.filter { it.z in 12.0..28.0 }.any { supportOverBlock(it) }, "$type: no support resting on the block")
+        }
+    }
+
     @Test
     fun organicIsTheDefault() {
         assertTrue(com.orcaphone.core.config.ProcessProfile(id = "x", name = "x").supportType == SupportType.ORGANIC)

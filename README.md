@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.3.1**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.4.0**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
@@ -56,7 +56,7 @@ on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.
 - "Add from OrcaSlicer library": any of OrcaSlicer's 1,600+ printers with its default process and filament
 
 Synced presets only store differences to OrcaSlicer's system presets, so the app bundles those
-(`slicer-core/src/main/resources/orca/system_presets.json.gz`). Regenerate after an OrcaSlicer update with
+(`slicer-core/src/main/resources/orca/system_presets.json.gz`, currently from OrcaSlicer 2.5.2). Regenerate after an OrcaSlicer update with
 `tools/gen_orca_catalog.py <OrcaSlicer>/resources/profiles`.
 
 ## Built-in presets

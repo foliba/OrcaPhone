@@ -368,6 +368,14 @@ class CloudSync(context: Context, private val repos: Repositories) {
                 keepCopyAndTakeServer(k, cat, preset, localId, r.serverProfile, linkInPlace = false)
             }
             r.httpCode == 409 && r.serverProfile != null -> keepCopyAndTakeServer(k, cat, preset, localId, r.serverProfile, linkInPlace = true)
+            r.httpCode == 409 && meta == null -> {
+                // A preset with this name was deleted in the cloud and the user made it again on the phone:
+                // the cloud keeps a tombstone for the old id, so re-create it with a force push (as
+                // OrcaSlicer 2.4+ does) instead of leaving it stuck on the phone.
+                val f = client.push(cloudId, name, content, null, force = true)
+                if (f.ok) k.store.replaceUserPreset(localId) { k.store.withCloud(it, CloudMeta(cloudId, f.updatedTime, content, pendingPush = false)) }
+                else throw OrcaCloudException("Could not upload “$name”: ${f.message.ifBlank { "HTTP ${f.httpCode}" }}", f.httpCode)
+            }
             r.httpCode == 409 -> {
                 // deleted in the cloud meanwhile: keep it as a local preset
                 k.store.replaceUserPreset(localId) { k.store.withCloud(it, null) }
