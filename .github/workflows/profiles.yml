@@ -2,7 +2,8 @@ name: OrcaSlicer profiles
 
 # Once a day: when OrcaSlicer has a new stable release, convert its printer, filament and process profiles
 # and bed graphics into a pack the app can download (tools/gen_orca_catalog.py, tools/gen_bed_assets.py),
-# check it, and publish it as the release "profiles-<version>" (never marked latest).
+# check it, and publish it as the release "profiles-<version>". Packs are pre-releases, so GitHub never shows
+# one as the repository's latest release (the app finds them by tag).
 on:
   schedule:
     - cron: "17 4 * * *"
@@ -35,6 +36,8 @@ jobs:
           if gh release view "profiles-$V" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "Pack for OrcaSlicer $V exists already."
             echo "EXISTS=1" >> "$GITHUB_ENV"
+            # packs published before they were pre-releases showed up as the repository's latest release
+            gh release edit "profiles-$V" --repo "$GITHUB_REPOSITORY" --prerelease --latest=false
           fi
 
       - name: Fetch OrcaSlicer profiles
@@ -77,6 +80,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "profiles-$VERSION" "phorca-profiles-$VERSION.zip" \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
             --title "OrcaSlicer $VERSION profiles" \
             --notes "Printer, filament and process profiles and bed graphics from OrcaSlicer $VERSION, converted for Phorca. The app offers them at start-up (Setup → OrcaSlicer profiles). Licence: AGPL-3.0 (OrcaSlicer resources/profiles)."
