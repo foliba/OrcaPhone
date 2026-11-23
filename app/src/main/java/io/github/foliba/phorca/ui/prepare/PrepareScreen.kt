@@ -80,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -154,11 +155,15 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     }
     val selected = objects.firstOrNull { it.id == selectedId }
 
+    // Heights of the overlays at the top and bottom, so the view buttons use only the space between them.
+    var topPx by remember { mutableStateOf(0) }
+    var bottomPx by remember { mutableStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
     Box(Modifier.fillMaxSize()) {
         Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
 
-        if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp))
-        else Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
+        if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp).onSizeChanged { topPx = it.height })
+        else Column(Modifier.align(Alignment.TopStart).fillMaxWidth().onSizeChanged { topPx = it.height }) {
             PresetBar(
                 printer = p.name, printerDirty = printer.dirty,
                 filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
@@ -194,11 +199,14 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
 
         // Nothing to look at on an empty plate, and the buttons would sit behind the "plate is empty" card.
         if (objects.isNotEmpty()) {
-            ViewControls(
-                overhang = overhang, onOverhang = { overhang = !overhang },
-                onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
-            )
+            val top = with(density) { topPx.toDp() }
+            val bottom = with(density) { bottomPx.toDp() }
+            Box(Modifier.fillMaxSize().padding(top = top + 8.dp, bottom = bottom + 8.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+                ViewControls(
+                    overhang = overhang, onOverhang = { overhang = !overhang },
+                    onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
+                )
+            }
         }
 
         if (objects.isEmpty() && busy == null && ac == null) {
@@ -213,11 +221,11 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
         }
 
         if (ac != null) {
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp)) {
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).onSizeChanged { bottomPx = it.height }) {
                 AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
             }
         } else Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).onSizeChanged { bottomPx = it.height },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (selected != null) {
@@ -453,24 +461,43 @@ private fun ViewControls(
     overhang: Boolean, onOverhang: () -> Unit, onView: (Double, Double) -> Unit, onFrame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        ViewButton(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) }
-        ViewButton(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) }
-        ViewButton(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) }
-        ViewButton(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() }
-        ViewButton(Icons.Outlined.WarningAmber, "Overhang", active = overhang, onClick = onOverhang)
+    val buttons: List<Triple<ImageVector, String, () -> Unit>> = listOf(
+        Triple(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) },
+        Triple(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) },
+        Triple(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) },
+        Triple(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() },
+        Triple(Icons.Outlined.WarningAmber, "Overhang", onOverhang),
+    )
+    // Fit the free height between the top and bottom overlays (landscape phones and tablets have little):
+    // with names if they fit, icons only if not, and in two columns when even that is too tall.
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+        val labelled = 64.dp
+        val plain = 48.dp
+        val n = buttons.size
+        val showLabels = maxHeight >= labelled * n
+        val perColumn = if (showLabels) n else (maxHeight / plain).toInt().coerceIn(1, n)
+        val columns = buttons.chunked(perColumn)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            for (col in columns) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (showLabels) 4.dp else 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    for ((icon, label, click) in col) {
+                        ViewButton(icon, label, active = label == "Overhang" && overhang, showLabel = showLabels, onClick = click)
+                    }
+                }
+            }
+        }
     }
 }
 
 /** A view button with its name underneath, like the tool buttons in the object panel. */
 @Composable
-private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, onClick: () -> Unit) {
-    Column(Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, showLabel: Boolean = true, onClick: () -> Unit) {
+    Column(if (showLabel) Modifier.width(64.dp) else Modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         SmallFloatingActionButton(
             onClick = onClick,
             containerColor = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
         ) { Icon(icon, label) }
-        Surface(
+        if (showLabel) Surface(
             shape = RoundedCornerShape(6.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
         ) {

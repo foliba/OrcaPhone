@@ -58,7 +58,7 @@ class GCodeGenerator(
         const val RETRACT = 2
         const val ZMOVE = 3
         const val M73_MARK = ";@M73 "
-        const val VERSION = "0.5.0"
+        const val VERSION = "0.5.1"
         /** Thumbnail sizes: a large preview and a small list icon, as Mainsail/Fluidd/printer screens use. */
         val THUMBNAILS = listOf(300 to 300, 32 to 32)
     }
