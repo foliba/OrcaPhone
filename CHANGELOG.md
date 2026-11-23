@@ -4,8 +4,9 @@
 
 ### Fixes
 - In landscape (tablets, phones on their side) the view buttons on the right slid under the object
-  panel. They now stay between the top bar and the bottom panels: with names when there is room, as
-  icons only when it's tight, and in two or three columns when even that doesn't fit.
+  panel. On wide screens the bottom panels now leave a strip on the right for them; on narrow screens
+  they stay between the top bar and the panels. They show names when there is room, icons only when it's
+  tight, and use two or three columns when even that doesn't fit.
 - GitHub Actions workflows moved to their Node 24 versions (Node 20 deprecation warning).
 - The device tests run on Android 11, 15, 16 and 17, each on a phone and on a Pixel Tablet emulator
   (landscape and portrait).

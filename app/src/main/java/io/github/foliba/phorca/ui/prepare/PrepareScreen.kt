@@ -81,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -158,8 +159,13 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     // Heights of the overlays at the top and bottom, so the view buttons use only the space between them.
     var topPx by remember { mutableStateOf(0) }
     var bottomPx by remember { mutableStateOf(0) }
+    var widthPx by remember { mutableStateOf(0) }
     val density = androidx.compose.ui.platform.LocalDensity.current
-    Box(Modifier.fillMaxSize()) {
+    // Wide screens (tablets, phones on their side) keep a strip on the right for the view buttons, so the
+    // bottom panels don't take the height they need; narrow ones put the buttons above the panels.
+    val wide = with(density) { widthPx.toDp() } >= 600.dp
+    val sideStrip = if (wide) 80.dp else 0.dp
+    Box(Modifier.fillMaxSize().onSizeChanged { widthPx = it.width }) {
         Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
 
         if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp).onSizeChanged { topPx = it.height })
@@ -201,7 +207,10 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
         if (objects.isNotEmpty()) {
             val top = with(density) { topPx.toDp() }
             val bottom = with(density) { bottomPx.toDp() }
-            Box(Modifier.fillMaxSize().padding(top = top + 8.dp, bottom = bottom + 8.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+            Box(
+                Modifier.fillMaxSize().padding(top = top + 8.dp, bottom = if (wide) 8.dp else bottom + 8.dp, end = 8.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
                 ViewControls(
                     overhang = overhang, onOverhang = { overhang = !overhang },
                     onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
@@ -221,11 +230,11 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
         }
 
         if (ac != null) {
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).onSizeChanged { bottomPx = it.height }) {
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).padding(end = sideStrip).onSizeChanged { bottomPx = it.height }) {
                 AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
             }
         } else Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).onSizeChanged { bottomPx = it.height },
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).padding(end = sideStrip).onSizeChanged { bottomPx = it.height },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (selected != null) {
@@ -569,7 +578,10 @@ private fun ObjectPanel(
     bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
     tooBig: Boolean = false, onAutoCut: () -> Unit = {},
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f))) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f)),
+        modifier = Modifier.testTag("objectPanel"),
+    ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -665,7 +677,7 @@ private fun ActionBar(
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
-        tonalElevation = 3.dp, shadowElevation = 4.dp,
+        tonalElevation = 3.dp, shadowElevation = 4.dp, modifier = Modifier.testTag("actionBar"),
     ) {
         if (slice is SliceUiState.Running) {
             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {

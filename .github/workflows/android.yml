@@ -62,7 +62,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [30, 35, 36, 37]
+        # Android 17's SDK packages are named 37.0
+        api: ['30', '35', '36', '37.0']
         # tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
         device: [phone, tablet]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
@@ -92,8 +93,9 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          # Android 11 runs the plain image, the newer versions the Google APIs image (as before)
-          target: ${{ matrix.api == 30 && 'default' || 'google_apis' }}
+          # Android 11 runs the plain image, the newer versions the Google APIs image; Android 17's is
+          # published only with 16 KB memory pages (its default)
+          target: ${{ matrix.api == '30' && 'default' || (matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis') }}
           profile: ${{ matrix.device == 'tablet' && 'pixel_tablet' || '' }}
           ram-size: 4096M
           emulator-boot-timeout: 900
