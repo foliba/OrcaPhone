@@ -1,6 +1,7 @@
 package io.github.foliba.phorca
 
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -29,18 +30,25 @@ class ViewControlsUiTest {
         }
     }
 
+    private fun orientation(): Int {
+        var o = 0
+        rule.activityRule.scenario.onActivity { o = it.resources.configuration.orientation }
+        return o
+    }
+
+    /** Checks the orientation the device starts in (portrait on phones, landscape on tablets), then the other one. */
     @Test
     fun viewButtonsStayClearOfThePanels() {
         rule.activityRule.scenario.onActivity { ViewModelProvider(it)[AppViewModel::class.java].addSample(AppViewModel.Sample.CUBE) }
         rule.waitForIdle()
-        check("portrait")
-        rule.activityRule.scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
-        rule.waitUntil(10_000) {
-            var landscape = false
-            rule.activityRule.scenario.onActivity { landscape = it.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE }
-            landscape
+        val first = orientation()
+        val landscapeFirst = first == Configuration.ORIENTATION_LANDSCAPE
+        check(if (landscapeFirst) "landscape" else "portrait")
+        rule.activityRule.scenario.onActivity {
+            it.requestedOrientation = if (landscapeFirst) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
+        rule.waitUntil(10_000) { orientation() != first }
         rule.waitForIdle()
-        check("landscape")
+        check(if (landscapeFirst) "portrait" else "landscape")
     }
 }
