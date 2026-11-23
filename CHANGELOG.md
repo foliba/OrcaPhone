@@ -7,8 +7,8 @@
   panel. They now stay between the top bar and the bottom panels: with names when there is room, as
   icons only when it's tight, and in two or three columns when even that doesn't fit.
 - GitHub Actions workflows moved to their Node 24 versions (Node 20 deprecation warning).
-- The device tests also run on Android 16 and 17 and on a Pixel Tablet emulator (Android 16, landscape
-  and portrait), next to Android 11 and 15.
+- The device tests run on Android 11, 15, 16 and 17, each on a phone and on a Pixel Tablet emulator
+  (landscape and portrait).
 
 ## 0.5.0 — Phorca
 

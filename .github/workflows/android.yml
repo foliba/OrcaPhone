@@ -57,19 +57,14 @@ jobs:
           if-no-files-found: error
 
   device-test:
-    # Android 11 up to the newest version, plus a tablet: newer versions lay out system bars and dialogs
-    # differently (Android 15 caught the Import bar being pushed off-screen).
+    # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
+    # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { api: 30, target: default, profile: "" }
-          - { api: 35, target: google_apis, profile: "" }
-          # the newest Android versions (the app targets 36)
-          - { api: 36, target: google_apis, profile: "" }
-          - { api: 37, target: google_apis, profile: "" }
-          # a tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
-          - { api: 36, target: google_apis, profile: pixel_tablet }
+        api: [30, 35, 36, 37]
+        # tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
+        device: [phone, tablet]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -97,8 +92,9 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          target: ${{ matrix.target }}
-          profile: ${{ matrix.profile }}
+          # Android 11 runs the plain image, the newer versions the Google APIs image (as before)
+          target: ${{ matrix.api == 30 && 'default' || 'google_apis' }}
+          profile: ${{ matrix.device == 'tablet' && 'pixel_tablet' || '' }}
           ram-size: 4096M
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
