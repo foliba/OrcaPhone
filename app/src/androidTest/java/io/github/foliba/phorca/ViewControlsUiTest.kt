@@ -42,14 +42,14 @@ class ViewControlsUiTest {
         val root = rule.onRoot().getUnclippedBoundsInRoot()
         val panel = rule.onNodeWithTag("objectPanel").getUnclippedBoundsInRoot()
         val bar = rule.onNodeWithTag("actionBar").getUnclippedBoundsInRoot()
-        val topBar = rule.onNodeWithText("Printer").getUnclippedBoundsInRoot().bottom
+        val topBar = rule.onNodeWithText("Printer").getUnclippedBoundsInRoot()
         for (name in listOf("3D view", "Top", "Front", "Fit", "Overhang")) {
             val b = rule.onNodeWithContentDescription(name).getUnclippedBoundsInRoot()
             val where = "$orientation ${root.right}x${root.bottom}: $name button $b"
             assertTrue("$where is squashed", b.bottom - b.top >= 32.dp && b.right - b.left >= 32.dp)
             assertTrue("$where overlaps the object panel $panel", !b.overlaps(panel))
             assertTrue("$where overlaps the action bar $bar", !b.overlaps(bar))
-            assertTrue("$where reaches into the top bar (bottom $topBar)", b.top >= topBar)
+            assertTrue("$where overlaps the printer chip $topBar", !b.overlaps(topBar))
             assertTrue("$where is off screen", b.bottom <= root.bottom && b.right <= root.right)
         }
     }

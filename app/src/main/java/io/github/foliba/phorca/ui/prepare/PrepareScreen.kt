@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -156,68 +157,9 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     }
     val selected = objects.firstOrNull { it.id == selectedId }
 
-    // Heights of the overlays at the top and bottom, so the view buttons use only the space between them.
-    var topPx by remember { mutableStateOf(0) }
-    var bottomPx by remember { mutableStateOf(0) }
-    var widthPx by remember { mutableStateOf(0) }
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    // Wide screens (tablets, phones on their side) keep a strip on the right for the view buttons, so the
-    // bottom panels don't take the height they need; narrow ones put the buttons above the panels.
-    val wide = with(density) { widthPx.toDp() } >= 600.dp
-    val sideStrip = if (wide) 80.dp else 0.dp
-    Box(Modifier.fillMaxSize().onSizeChanged { widthPx = it.width }) {
+    Box(Modifier.fillMaxSize()) {
         val bedGfx by vm.bedGraphics.collectAsStateWithLifecycle()
         Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize(), bed = bedGfx)
-
-        if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp).onSizeChanged { topPx = it.height })
-        else Column(Modifier.align(Alignment.TopStart).fillMaxWidth().onSizeChanged { topPx = it.height }) {
-            PresetBar(
-                printer = p.name, printerDirty = printer.dirty,
-                filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
-                process = process.working.name, processDirty = process.dirty,
-                onClick = { sheet = it },
-            )
-            if (beds.size > 1) {
-                BedBar(
-                    count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
-                    chipLabel = { i -> "Bed ${i + 1} · ${beds[i].objects.size}" },
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    var bedMenu by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { bedMenu = true }) { Icon(Icons.Outlined.MoreVert, "Bed options") }
-                        DropdownMenu(expanded = bedMenu, onDismissRequest = { bedMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Add empty bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
-                                onClick = { bedMenu = false; vm.addBed() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete bed ${activeBed + 1}") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
-                                onClick = {
-                                    bedMenu = false
-                                    if (objects.isEmpty()) vm.deleteBed(activeBed) else confirmDeleteBed = activeBed
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Nothing to look at on an empty plate, and the buttons would sit behind the "plate is empty" card.
-        if (objects.isNotEmpty()) {
-            val top = with(density) { topPx.toDp() }
-            val bottom = with(density) { bottomPx.toDp() }
-            Box(
-                Modifier.fillMaxSize().padding(top = top + 8.dp, bottom = if (wide) 8.dp else bottom + 8.dp, end = 8.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                ViewControls(
-                    overhang = overhang, onOverhang = { overhang = !overhang },
-                    onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
-                )
-            }
-        }
 
         if (objects.isEmpty() && busy == null && ac == null) {
             if (beds.size > 1) {
@@ -230,51 +172,110 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             }
         }
 
-        if (ac != null) {
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).padding(end = sideStrip).onSizeChanged { bottomPx = it.height }) {
-                AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
-            }
-        } else Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).padding(end = sideStrip).onSizeChanged { bottomPx = it.height },
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (selected != null) {
-                val inside = selected.isInside(p.bedWidth, p.bedDepth, p.maxHeight)
-                ObjectPanel(
-                    name = selected.name,
-                    instances = objects.count { it.group == selected.group },
-                    volumes = volumeSummary(selected),
-                    size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
-                    outside = !inside,
-                    onRotate = { sheet = PrepareSheet.ROTATE },
-                    onScale = { sheet = PrepareSheet.SCALE },
-                    onLayFlat = { vm.layFlatSelected() },
-                    onCenter = { vm.centerSelected() },
-                    onInstances = { sheet = PrepareSheet.INSTANCES },
-                    onDelete = { vm.deleteSelected() },
-                    bedCount = beds.size, activeBed = activeBed,
-                    onMoveToBed = { vm.moveSelectedToBed(it) },
-                    tooBig = vm.tooBigForBed(selected),
-                    onAutoCut = { vm.startAutoCut() },
+
+        // The overlays in one layout: top bar, the free middle (view buttons) and the bottom panels share the
+        // height, so the view buttons can never run into the panels. Wide screens (tablets, phones on their side)
+        // give the view buttons a column of their own on the right, next to everything else.
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 600.dp
+            // nothing to look at on an empty plate (and the buttons would sit behind the "plate is empty" card)
+            val viewButtons: @Composable (Modifier) -> Unit = { m ->
+                if (objects.isNotEmpty()) ViewControls(
+                    overhang = overhang, onOverhang = { overhang = !overhang },
+                    onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
+                    modifier = m,
                 )
             }
-            ActionBar(
-                hasObjects = objects.isNotEmpty(),
-                slice = slice,
-                onAdd = { sheet = PrepareSheet.ADD },
-                onModels = { sheet = PrepareSheet.MODELS },
-                onArrange = { vm.arrange() },
-                onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
-                onAddBed = { vm.addBed() },
-                onAbout = onAbout,
-                sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
-                onTune = { sheet = PrepareSheet.QUICK },
-                onClear = { vm.clearPlate() },
-                onSlice = { vm.startSlice() },
-                onCancel = { vm.cancelSlice() },
-                dark = dark,
-                onToggleDark = { vm.repos.ui.setThemeMode(if (dark) ThemeMode.LIGHT else ThemeMode.DARK) },
-            )
+            Row(Modifier.fillMaxSize()) {
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                if (ac != null) AutoCutHeader(ac, Modifier.padding(8.dp))
+                else Column(Modifier.fillMaxWidth()) {
+                    PresetBar(
+                        printer = p.name, printerDirty = printer.dirty,
+                        filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
+                        process = process.working.name, processDirty = process.dirty,
+                        onClick = { sheet = it },
+                    )
+                    if (beds.size > 1) {
+                        BedBar(
+                            count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
+                            chipLabel = { i -> "Bed ${i + 1} · ${beds[i].objects.size}" },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        ) {
+                            var bedMenu by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { bedMenu = true }) { Icon(Icons.Outlined.MoreVert, "Bed options") }
+                                DropdownMenu(expanded = bedMenu, onDismissRequest = { bedMenu = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Add empty bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                                        onClick = { bedMenu = false; vm.addBed() },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete bed ${activeBed + 1}") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                        onClick = {
+                                            bedMenu = false
+                                            if (objects.isEmpty()) vm.deleteBed(activeBed) else confirmDeleteBed = activeBed
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                        if (!wide) viewButtons(Modifier.fillMaxHeight().padding(vertical = 8.dp).padding(end = 8.dp))
+                    }
+
+                if (ac != null) {
+                    Box(Modifier.fillMaxWidth().padding(8.dp)) {
+                        AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
+                    }
+                } else Column(
+                    Modifier.fillMaxWidth().padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (selected != null) {
+                        val inside = selected.isInside(p.bedWidth, p.bedDepth, p.maxHeight)
+                        ObjectPanel(
+                            name = selected.name,
+                            instances = objects.count { it.group == selected.group },
+                            volumes = volumeSummary(selected),
+                            size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
+                            outside = !inside,
+                            onRotate = { sheet = PrepareSheet.ROTATE },
+                            onScale = { sheet = PrepareSheet.SCALE },
+                            onLayFlat = { vm.layFlatSelected() },
+                            onCenter = { vm.centerSelected() },
+                            onInstances = { sheet = PrepareSheet.INSTANCES },
+                            onDelete = { vm.deleteSelected() },
+                            bedCount = beds.size, activeBed = activeBed,
+                            onMoveToBed = { vm.moveSelectedToBed(it) },
+                            tooBig = vm.tooBigForBed(selected),
+                            onAutoCut = { vm.startAutoCut() },
+                        )
+                    }
+                    ActionBar(
+                        hasObjects = objects.isNotEmpty(),
+                        slice = slice,
+                        onAdd = { sheet = PrepareSheet.ADD },
+                        onModels = { sheet = PrepareSheet.MODELS },
+                        onArrange = { vm.arrange() },
+                        onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
+                        onAddBed = { vm.addBed() },
+                        onAbout = onAbout,
+                        sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
+                        onTune = { sheet = PrepareSheet.QUICK },
+                        onClear = { vm.clearPlate() },
+                        onSlice = { vm.startSlice() },
+                        onCancel = { vm.cancelSlice() },
+                        dark = dark,
+                        onToggleDark = { vm.repos.ui.setThemeMode(if (dark) ThemeMode.LIGHT else ThemeMode.DARK) },
+                    )
+                }
+                }
+                if (wide) viewButtons(Modifier.fillMaxHeight().padding(vertical = 8.dp).padding(end = 8.dp))
+            }
         }
 
         busy?.let { msg ->
@@ -480,7 +481,7 @@ private fun ViewControls(
     )
     // Fit the free height between the top and bottom overlays (landscape phones and tablets have little):
     // with names if they fit, icons only if not, and in two columns when even that is too tall.
-    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val labelled = 64.dp
         val plain = 48.dp
         val n = buttons.size
