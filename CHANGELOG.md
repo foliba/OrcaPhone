@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.2 — new OrcaSlicer profiles without an app update
+
+### New
+- **Newer OrcaSlicer profiles at start-up.** When OrcaSlicer publishes a new stable release, Phorca asks
+  whether to download its printer, filament and process profiles and bed graphics (about 2 MB):
+  **Download** or **Ignore**, with *Don't ask again*. Presets you already added are not changed.
+  The profiles are converted and checked by Phorca's own workflow before the app offers them.
+- **Setup → OrcaSlicer profiles** shows which OrcaSlicer version's profiles are in use, switches the
+  start-up check on or off, and has **Check now**.
+- The **Device** tab is now called **Setup** (same icon).
+
 ## 0.5.1 — landscape, axis indicator
 
 ### New

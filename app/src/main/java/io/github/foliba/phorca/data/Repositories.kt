@@ -35,6 +35,8 @@ class Repositories(context: Context) {
     val connections = ConnectionStore(File(dir, "connections.json"))
     val hostClient = PrinterHostClient()
     val ui = UiSettings(context)
+    /** Newer OrcaSlicer profiles; before [cloud], which reads its catalog. */
+    val profileUpdates = ProfileUpdates(context.applicationContext)
     val cloud = io.github.foliba.phorca.cloud.CloudSync(context.applicationContext, this)
     val remoteModels = io.github.foliba.phorca.models.RemoteModelClient(context.applicationContext)
 }

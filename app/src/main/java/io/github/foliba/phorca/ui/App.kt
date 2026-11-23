@@ -54,6 +54,11 @@ fun PhorcaAppUi(vm: AppViewModel) {
         vm.cloud.messages.collect { snackbar.showSnackbar(it) }
     }
 
+    val profileUpdate by vm.profileUpdate.collectAsStateWithLifecycle()
+    profileUpdate?.let { u ->
+        ProfileUpdateDialog(u, onDownload = { vm.downloadProfiles() }, onIgnore = { vm.ignoreProfiles(it) })
+    }
+
     val linkPrompt by vm.linkPrompt.collectAsStateWithLifecycle()
     val remote by vm.remote.collectAsStateWithLifecycle()
     if (linkPrompt) {
@@ -124,7 +129,7 @@ fun PhorcaAppUi(vm: AppViewModel) {
                 )
                 NavigationBarItem(
                     selected = tab == Tab.DEVICE, onClick = { vm.setTab(Tab.DEVICE) },
-                    icon = { Icon(Icons.Outlined.Print, null) }, label = { Text("Device") },
+                    icon = { Icon(Icons.Outlined.Print, null) }, label = { Text("Setup") },
                 )
             }
         },

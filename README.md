@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.5.1**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.5.2**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 Phorca was called **OrcaPhone** up to version 0.4.2. The rename came with a new package name, so
@@ -27,6 +27,7 @@ the OrcaSlicer printer profiles (AGPL-3.0).
   joined by dovetails; you pick the side it lies on (flat faces are colour-coded), each piece gets its own bed
 - Tap to select, drag a selected object to move it on the bed
 - Rotate (±15°/±90° per axis), **lay flat** on the largest face, uniform/free scale by % or mm, center, delete, auto-arrange
+- **New OrcaSlicer profiles** offered at start-up when OrcaSlicer releases them (Setup → OrcaSlicer profiles)
 - **Printer beds** drawn as in OrcaSlicer (plate model and markings of 404 printer models), with an X/Y/Z axis indicator
 - **Instances**: place a number of copies of a model, or fill the bed, spaced so brims, skirt and supports
   don't touch; changing one instance (rotate, scale, lay flat) changes all of them. The model list shows each
@@ -53,13 +54,13 @@ the OrcaSlicer printer profiles (AGPL-3.0).
 - Toggle features and travel moves, print summary sheet
 - Save G-code (Storage Access Framework) or share it
 
-**Device**
+**Setup**
 - OctoPrint, Klipper (Moonraker — Mainsail/Fluidd) and PrusaLink
 - Live status (state, progress, temperatures), pause / resume / cancel
 - Upload with progress, optionally start printing
 
 **Orca Cloud**
-- Sign in with your OrcaSlicer account (Device tab), using the same hosted login page as OrcaSlicer desktop
+- Sign in with your OrcaSlicer account (Setup tab), using the same hosted login page as OrcaSlicer desktop
 - Two-way sync of your printer, filament and process presets with OrcaSlicer on your computer
   (download on sign-in / start / "Sync now", upload when you save, deletes synced; conflicts keep a phone copy)
 - Your Orca Cloud printers with online status and job progress

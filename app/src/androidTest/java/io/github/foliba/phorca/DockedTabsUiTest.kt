@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * Tablets in landscape: Prepare / Preview / Device sit in the middle of each screen's bottom bar, no second bar.
+ * Tablets in landscape: Prepare / Preview / Setup sit in the middle of each screen's bottom bar, no second bar.
  * Everywhere else (phones, tablets in portrait) the navigation bar stays.
  */
 @RunWith(AndroidJUnit4::class)
@@ -91,9 +91,9 @@ class DockedTabsUiTest {
                 rule.onNodeWithText("Preview").performClick()
                 rule.waitForIdle()
                 assertDocked("Preview", null)
-                rule.onNodeWithText("Device").performClick()
+                rule.onNodeWithText("Setup").performClick()
                 rule.waitForIdle()
-                assertDocked("Device", null)
+                assertDocked("Setup", null)
                 // Add printer shares the bar with the switcher
                 val tabs = rule.onNodeWithTag("dockedTabs").getUnclippedBoundsInRoot()
                 val adds = rule.onAllNodesWithText("Add printer")
@@ -105,7 +105,7 @@ class DockedTabsUiTest {
                 )
             } else {
                 rule.onAllNodes(hasTestTag("dockedTabs")).assertCountEquals(0)
-                rule.onNodeWithText("Device").assertExists() // the navigation bar
+                rule.onNodeWithText("Setup").assertExists() // the navigation bar
             }
         }
     }
