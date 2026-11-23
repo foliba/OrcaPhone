@@ -75,6 +75,9 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
     val upload by vm.upload.collectAsStateWithLifecycle()
     val cloudState by vm.cloud.state.collectAsStateWithLifecycle()
     val themeMode by vm.repos.ui.themeMode.collectAsStateWithLifecycle()
+    val profilesVersion by vm.repos.profileUpdates.version.collectAsStateWithLifecycle()
+    val checkProfiles by vm.repos.profileUpdates.checkOnStartup.collectAsStateWithLifecycle()
+    val checkingProfiles by vm.checkingProfiles.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<PrinterConnection?>(null) }
     var confirmCancel by remember { mutableStateOf<PrinterConnection?>(null) }
     val ready = slice as? SliceUiState.Ready
@@ -151,6 +154,13 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
                     onSend = { vm.sendToPrinter(c, true) },
                     onCommand = { cmd -> if (cmd == JobCommand.CANCEL) confirmCancel = c else vm.jobCommand(c, cmd) },
                     onEdit = { editing = c },
+                )
+            }
+            item {
+                io.github.foliba.phorca.ui.components.ProfilesCard(
+                    version = profilesVersion, checkOnStartup = checkProfiles, checking = checkingProfiles,
+                    onCheckOnStartup = { vm.repos.profileUpdates.setCheckOnStartup(it) },
+                    onCheckNow = { vm.checkProfiles(manual = true) },
                 )
             }
             item {

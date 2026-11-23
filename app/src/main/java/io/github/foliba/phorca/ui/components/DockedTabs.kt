@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import io.github.foliba.phorca.ui.Tab
 
 /**
- * On tablets in landscape the Prepare / Preview / Device switcher sits in the middle of each screen's own
+ * On tablets in landscape the Prepare / Preview / Setup switcher sits in the middle of each screen's own
  * bottom bar instead of in a navigation bar of its own. Null everywhere else: screens then draw nothing.
  */
 val LocalDockedTabs = compositionLocalOf<(@Composable () -> Unit)?> { null }
@@ -43,7 +43,7 @@ fun TabSwitcher(tab: Tab, previewStale: Boolean, onSelect: (Tab) -> Unit) {
     Row(Modifier.selectableGroup().testTag("dockedTabs"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         TabItem(Icons.Outlined.ViewInAr, "Prepare", tab == Tab.PREPARE) { onSelect(Tab.PREPARE) }
         TabItem(Icons.Outlined.Layers, "Preview", tab == Tab.PREVIEW, badge = previewStale) { onSelect(Tab.PREVIEW) }
-        TabItem(Icons.Outlined.Print, "Device", tab == Tab.DEVICE) { onSelect(Tab.DEVICE) }
+        TabItem(Icons.Outlined.Print, "Setup", tab == Tab.DEVICE) { onSelect(Tab.DEVICE) }
     }
 }
 

@@ -109,6 +109,13 @@ data class UploadState(val connectionId: String, val progress: Float, val done: 
 
 enum class Tab { PREPARE, PREVIEW, DEVICE }
 
+/** Newer OrcaSlicer profiles: offered, or downloading ([progress] 0..1). */
+sealed interface ProfileUpdateUi {
+    val update: io.github.foliba.phorca.data.ProfileUpdate
+    data class Offer(override val update: io.github.foliba.phorca.data.ProfileUpdate) : ProfileUpdateUi
+    data class Downloading(override val update: io.github.foliba.phorca.data.ProfileUpdate, val progress: Float) : ProfileUpdateUi
+}
+
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     val repos = (app as PhorcaApp).repos
     val printers = repos.printers.state
@@ -163,6 +170,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** The selected printer's own bed (model and texture from OrcaSlicer), or null for the plain grid. */
     val bedGraphics: StateFlow<io.github.foliba.phorca.gl.BedGraphics?> = _bed.asStateFlow()
 
+    // ------------------------------------------------------------------ OrcaSlicer profile updates
+
+    private val runningUnderTest = runCatching { Class.forName("androidx.test.platform.app.InstrumentationRegistry") }.isSuccess
+
+    private val _profileUpdate = MutableStateFlow<ProfileUpdateUi?>(null)
+    /** Newer OrcaSlicer profiles on offer, or being downloaded; null otherwise. */
+    val profileUpdate: StateFlow<ProfileUpdateUi?> = _profileUpdate.asStateFlow()
+    private val _checkingProfiles = MutableStateFlow(false)
+    val checkingProfiles: StateFlow<Boolean> = _checkingProfiles.asStateFlow()
+
+    /** Looks for newer OrcaSlicer profiles; [manual] (the Check now button) also says when there is nothing new. */
+    fun checkProfiles(manual: Boolean) {
+        if (_checkingProfiles.value || _profileUpdate.value != null) return
+        viewModelScope.launch {
+            _checkingProfiles.value = true
+            val result = runCatching { repos.profileUpdates.check() }
+            _checkingProfiles.value = false
+            val u = result.getOrNull()
+            when {
+                u != null -> _profileUpdate.value = ProfileUpdateUi.Offer(u)
+                !manual -> Unit // quietly: no network, rate limit or nothing new
+                result.isFailure -> say("Couldn't check for new profiles: ${result.exceptionOrNull()?.message ?: "no connection"}")
+                else -> say("The profiles are up to date (OrcaSlicer ${repos.profileUpdates.version.value})")
+            }
+        }
+    }
+
+    /** Not now; with [dontAskAgain] the start-up check is switched off (it can be switched on again in Setup). */
+    fun ignoreProfiles(dontAskAgain: Boolean) {
+        _profileUpdate.value = null
+        if (dontAskAgain) {
+            repos.profileUpdates.setCheckOnStartup(false)
+            say("Phorca won't ask about new profiles again. You can switch it back on in Setup.")
+        }
+    }
+
+    fun downloadProfiles() {
+        val offer = _profileUpdate.value as? ProfileUpdateUi.Offer ?: return
+        val u = offer.update
+        viewModelScope.launch {
+            _profileUpdate.value = ProfileUpdateUi.Downloading(u, 0f)
+            val result = runCatching {
+                repos.profileUpdates.install(u) { f -> _profileUpdate.value = ProfileUpdateUi.Downloading(u, f) }
+            }
+            _profileUpdate.value = null
+            result.onSuccess {
+                cloud.reloadCatalog()
+                say("Updated to the OrcaSlicer ${u.version} profiles. Printers, filaments and processes you already added are not changed.")
+            }.onFailure {
+                android.util.Log.w("Phorca", "Profile update", it)
+                say("Couldn't update the profiles: ${it.message ?: it.javaClass.simpleName}")
+            }
+        }
+    }
+
     private val _busy = MutableStateFlow<String?>(null)
     val busy: StateFlow<String?> = _busy.asStateFlow()
 
@@ -180,20 +242,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         // The printer's own bed graphics, loaded off the main thread whenever the printer (model or size) changes.
+        // (again after newer OrcaSlicer profiles were downloaded: they come with their own bed graphics)
         viewModelScope.launch {
-            printers.map { it.working }
-                .distinctUntilChanged { a, b ->
-                    a.id == b.id && a.printerModel == b.printerModel && a.bedWidth == b.bedWidth && a.bedDepth == b.bedDepth
+            combine(printers.map { it.working }, repos.profileUpdates.version) { p, v -> p to v }
+                .distinctUntilChanged { (a, va), (b, vb) ->
+                    va == vb && a.id == b.id && a.printerModel == b.printerModel && a.bedWidth == b.bedWidth && a.bedDepth == b.bedDepth
                 }
-                .collectLatest { p ->
+                .collectLatest { (p, _) ->
                     _bed.value = withContext(Dispatchers.IO) {
                         runCatching {
                             val model = io.github.foliba.phorca.gl.BedAssets.modelName(p) { cloud.catalog() }
-                            model?.let { io.github.foliba.phorca.gl.BedAssets.load(getApplication(), it, p.bedWidth, p.bedDepth) }
+                            val packBeds = repos.profileUpdates.activeDir()?.let { File(it, "beds") }
+                            model?.let { io.github.foliba.phorca.gl.BedAssets.load(getApplication(), it, p.bedWidth, p.bedDepth, packBeds) }
                         }.onFailure { android.util.Log.w("Phorca", "Bed graphics", it) }.getOrNull()
                     }
                 }
         }
+        // Newer OrcaSlicer profiles: ask once per start, unless switched off.
+        // (not in device tests: a dialog popping up would get in the way of every UI test)
+        if (repos.profileUpdates.checkOnStartup.value && !runningUnderTest) checkProfiles(manual = false)
         // A settings change makes every slice result stale; plate edits mark only their bed (see setBeds).
         viewModelScope.launch {
             combine(printers, filaments, processes) { a, b, c -> listOf(a.working, b.working, c.working) }

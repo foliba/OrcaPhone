@@ -1,0 +1,82 @@
+name: OrcaSlicer profiles
+
+# Once a day: when OrcaSlicer has a new stable release, convert its printer, filament and process profiles
+# and bed graphics into a pack the app can download (tools/gen_orca_catalog.py, tools/gen_bed_assets.py),
+# check it, and publish it as the release "profiles-<version>" (never marked latest).
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "OrcaSlicer version to convert, e.g. 2.5.3 (empty: the latest stable release)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: OrcaSlicer version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then V="$INPUT_VERSION"; else
+            V=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest --jq .tag_name); V="${V#v}"
+          fi
+          echo "$V" | grep -Eq '^[0-9]+(\.[0-9]+){1,3}$' || { echo "::error::Not a stable version: $V"; exit 1; }
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          if gh release view "profiles-$V" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Pack for OrcaSlicer $V exists already."
+            echo "EXISTS=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Fetch OrcaSlicer profiles
+        if: env.EXISTS != '1'
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --sparse -b "v$VERSION" https://github.com/OrcaSlicer/OrcaSlicer orca
+          git -C orca sparse-checkout set resources/profiles
+
+      - name: Convert
+        if: env.EXISTS != '1'
+        run: |
+          mkdir -p pack
+          python3 tools/gen_orca_catalog.py orca/resources/profiles pack/system_presets.json.gz
+          python3 tools/gen_bed_assets.py orca/resources/profiles pack/beds
+          printf '{"format": 1, "orcaVersion": "%s", "generated": "%s"}\n' "$VERSION" "$(date -u +%F)" > pack/manifest.json
+          (cd pack && zip -q -r -9 "../phorca-profiles-$VERSION.zip" manifest.json system_presets.json.gz beds)
+          ls -l "phorca-profiles-$VERSION.zip"
+
+      - uses: actions/setup-java@v6
+        if: env.EXISTS != '1'
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+        if: env.EXISTS != '1'
+        with:
+          cache-provider: basic
+
+      # the app's own check of a downloaded pack, plus every bed model decoded
+      - name: Check the pack
+        if: env.EXISTS != '1'
+        run: |
+          PHORCA_PACK="$PWD/phorca-profiles-$VERSION.zip" PHORCA_PACK_VERSION="$VERSION" \
+            ./gradlew :slicer-core:test --tests '*ProfilePackTest*'
+
+      - name: Publish
+        if: env.EXISTS != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "profiles-$VERSION" "phorca-profiles-$VERSION.zip" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+            --title "OrcaSlicer $VERSION profiles" \
+            --notes "Printer, filament and process profiles and bed graphics from OrcaSlicer $VERSION, converted for Phorca. The app offers them at start-up (Setup → OrcaSlicer profiles). Licence: AGPL-3.0 (OrcaSlicer resources/profiles)."

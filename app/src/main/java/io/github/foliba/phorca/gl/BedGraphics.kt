@@ -12,6 +12,8 @@ import io.github.foliba.phorca.core.mesh.Mesh
 import io.github.foliba.phorca.core.orca.OrcaCatalog
 import io.github.foliba.phorca.core.orca.OrcaKind
 import org.json.JSONObject
+import java.io.File
+import java.io.InputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -21,18 +23,28 @@ import kotlin.math.roundToInt
  */
 class BedGraphics(val key: String, val model: Mesh?, val texture: Bitmap?)
 
-/** The bed files baked into the app (assets/beds, made by tools/gen_bed_assets.py from OrcaSlicer 2.5.2). */
+/**
+ * The bed files: baked into the app (assets/beds, made by tools/gen_bed_assets.py from OrcaSlicer 2.5.2), or
+ * from a downloaded profile pack ([packBeds], the pack's beds folder) when newer profiles were downloaded.
+ */
 object BedAssets {
-    private var index: Map<String, Pair<String?, String?>>? = null
+    private var index: Pair<String, Map<String, Pair<String?, String?>>>? = null
 
-    private fun index(context: Context): Map<String, Pair<String?, String?>> = index ?: run {
-        val json = JSONObject(context.assets.open("beds/index.json").bufferedReader().use { it.readText() }).getJSONObject("models")
+    private fun open(context: Context, packBeds: File?, path: String): InputStream =
+        if (packBeds != null) File(packBeds, path).inputStream() else context.assets.open("beds/$path")
+
+    @Synchronized
+    private fun index(context: Context, packBeds: File?): Map<String, Pair<String?, String?>> {
+        val source = packBeds?.path ?: "assets"
+        index?.takeIf { it.first == source }?.let { return it.second }
+        val json = JSONObject(open(context, packBeds, "index.json").bufferedReader().use { it.readText() }).getJSONObject("models")
         val m = HashMap<String, Pair<String?, String?>>()
         for (name in json.keys()) {
             val e = json.getJSONObject(name)
             m[name] = e.optString("model").ifEmpty { null } to e.optString("texture").ifEmpty { null }
         }
-        m.also { index = it }
+        index = source to m
+        return m
     }
 
     /**
@@ -51,25 +63,26 @@ object BedAssets {
     }
 
     /** Loads the bed of printer model [model] for a [bedW] x [bedD] mm printable area, or null if there is none. */
-    fun load(context: Context, model: String, bedW: Double, bedD: Double): BedGraphics? {
-        val (meshFile, texFile) = index(context)[model] ?: return null
+    fun load(context: Context, model: String, bedW: Double, bedD: Double, packBeds: File? = null): BedGraphics? {
+        val beds = packBeds?.takeIf { File(it, "index.json").exists() }
+        val (meshFile, texFile) = index(context, beds)[model] ?: return null
         val mesh = meshFile?.let { f ->
-            runCatching { BedModelCodec.decode(context.assets.open("beds/$f").use { it.readBytes() }) }
+            runCatching { BedModelCodec.decode(open(context, beds, f).use { it.readBytes() }) }
                 .onFailure { Log.w("Phorca", "Bed model $f", it) }.getOrNull()
         }
         val tex = texFile?.let { f ->
-            runCatching { texture(context, "beds/$f", bedW, bedD) }.onFailure { Log.w("Phorca", "Bed texture $f", it) }.getOrNull()
+            runCatching { texture({ open(context, beds, f) }, f, bedW, bedD) }.onFailure { Log.w("Phorca", "Bed texture $f", it) }.getOrNull()
         }
         if (mesh == null && tex == null) return null
         return BedGraphics("$model/$bedW/$bedD", mesh, tex)
     }
 
-    private fun texture(context: Context, path: String, bedW: Double, bedD: Double): Bitmap {
+    private fun texture(input: () -> InputStream, path: String, bedW: Double, bedD: Double): Bitmap {
         if (path.endsWith(".png", ignoreCase = true)) {
-            return context.assets.open(path).use { BitmapFactory.decodeStream(it) } ?: error("unreadable PNG")
+            return input().use { BitmapFactory.decodeStream(it) } ?: error("unreadable PNG")
         }
         // SVG: drawn at up to 2048 px on the long side, in the bed's proportions (stretched like OrcaSlicer)
-        val svg = context.assets.open(path).use { SVG.getFromInputStream(it) }
+        val svg = input().use { SVG.getFromInputStream(it) }
         val scale = 2048.0 / max(bedW, bedD)
         val w = (bedW * scale).roundToInt().coerceAtLeast(16)
         val h = (bedD * scale).roundToInt().coerceAtLeast(16)

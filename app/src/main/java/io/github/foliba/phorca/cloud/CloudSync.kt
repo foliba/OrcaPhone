@@ -151,8 +151,11 @@ class CloudSync(context: Context, private val repos: Repositories) {
     }
 
     suspend fun catalog(): OrcaCatalog = catalog ?: catalogMutex.withLock {
-        catalog ?: withContext(Dispatchers.Default) { OrcaCatalog.load() }.also { catalog = it }
+        catalog ?: withContext(Dispatchers.Default) { repos.profileUpdates.loadCatalog() }.also { catalog = it }
     }
+
+    /** Forgets the loaded catalog, e.g. after newer profiles were downloaded. */
+    fun reloadCatalog() { catalog = null }
 
     fun setAutoUpload(on: Boolean) {
         prefs.edit().putBoolean("auto_upload", on).apply()
