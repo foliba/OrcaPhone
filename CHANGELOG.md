@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.2 — Bambu Studio / MakerWorld 3MF
+
+### Fixes
+- 3MF files from Bambu Studio and MakerWorld failed with "3MF has no model". They store their thumbnails
+  in a way Android's streaming ZIP reader can't get past; 3MF files are now read through the ZIP
+  directory like any unzip tool does.
+- Parts of a 3MF project that are not printed (support blockers and enforcers, modifiers, negative
+  volumes) are no longer merged into the model as solid geometry. A support blocker made one part
+  astronomically tall.
+- Objects from Bambu Studio / OrcaSlicer projects get their names from the project ("Kopf", "Arm rechts")
+  instead of the file name with a number.
+- The view buttons are hidden while the plate is empty; they sat behind the "Your plate is empty" card.
+
 ## 0.4.1 — instances
 
 ### New
