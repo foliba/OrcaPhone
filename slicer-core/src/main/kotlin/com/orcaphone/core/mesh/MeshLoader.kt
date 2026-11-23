@@ -7,7 +7,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.zip.ZipInputStream
 
 class LoadedModel(val name: String, val mesh: Mesh)
 
@@ -138,14 +137,10 @@ object MeshLoader {
 
     fun load3mf(bytes: ByteArray, baseName: String): List<LoadedModel> {
         val files = HashMap<String, ModelFile>()
-        ZipInputStream(bytes.inputStream()).use { zip ->
-            while (true) {
-                val e = zip.nextEntry ?: break
-                if (!e.isDirectory && e.name.lowercase().endsWith(".model")) {
-                    val text = zip.readBytes().toString(Charsets.UTF_8)
-                    files["/" + e.name.trimStart('/')] = parseModel(text)
-                }
-            }
+        var settings = ProjectSettings()
+        ZipReader.read(bytes, { it.lowercase().endsWith(".model") || it.equals("Metadata/model_settings.config", ignoreCase = true) }) { name, data ->
+            if (name.endsWith(".config", ignoreCase = true)) settings = parseProjectSettings(data.toString(Charsets.UTF_8))
+            else files["/" + name.trimStart('/')] = parseModel(data.toString(Charsets.UTF_8))
         }
         val rootKey = files.keys.firstOrNull { it.equals("/3D/3dmodel.model", ignoreCase = true) }
             ?: files.keys.firstOrNull { files[it]!!.items.isNotEmpty() }
@@ -159,9 +154,11 @@ object MeshLoader {
         val unit = Mat4.scale(root.unitScale, root.unitScale, root.unitScale)
         for ((n, item) in items.withIndex()) {
             val soup = FloatArrayBuilder(1024)
-            appendObject(files, rootKey, item.objectId, unit * item.transform, soup, 0)
+            val skip = settings.skippedParts[item.objectId].orEmpty()
+            appendObject(files, rootKey, item.objectId, unit * item.transform, soup, 0, skip)
             if (soup.size == 0) continue
             val name = root.objects[item.objectId]?.name?.takeIf { it.isNotBlank() }
+                ?: settings.names[item.objectId]?.takeIf { it.isNotBlank() }?.let { cleanName(it) }
                 ?: if (items.size > 1) "$baseName ${n + 1}" else baseName
             result.add(LoadedModel(name, Mesh.fromTriangleSoup(soup.toArray())))
         }
@@ -171,6 +168,8 @@ object MeshLoader {
     private fun appendObject(
         files: Map<String, ModelFile>, path: String, id: String, t: Mat4,
         soup: FloatArrayBuilder, depth: Int,
+        /** Component object ids of the top-level object that are not printed (modifiers, blockers, …). */
+        skip: Set<String> = emptySet(),
     ) {
         if (depth > 16) return
         val file = files[path] ?: return
@@ -186,10 +185,46 @@ object MeshLoader {
             }
         }
         for (c in obj.components) {
+            if (depth == 0 && c.objectId in skip) continue
             val cp = c.path?.let { "/" + it.trimStart('/') } ?: path
             appendObject(files, cp, c.objectId, t * c.transform, soup, depth + 1)
         }
     }
+
+    /** Object names and non-printing parts from a Bambu Studio / OrcaSlicer project (Metadata/model_settings.config). */
+    private class ProjectSettings(
+        val names: Map<String, String> = emptyMap(),
+        val skippedParts: Map<String, Set<String>> = emptyMap(),
+    )
+
+    private val objectBlock = Regex("""<object\s+id="([^"]+)"\s*>(.*?)</object>""", RegexOption.DOT_MATCHES_ALL)
+    private val partTag = Regex("""<part\s([^>]*)>""")
+    private val nameMeta = Regex("""<metadata\s+key="name"\s+value="([^"]*)"""")
+
+    private fun attr(tag: String, name: String) = Regex("""\b$name="([^"]*)"""").find(tag)?.groupValues?.get(1)
+
+    private fun parseProjectSettings(text: String): ProjectSettings {
+        val names = HashMap<String, String>()
+        val skipped = HashMap<String, Set<String>>()
+        for (m in objectBlock.findAll(text)) {
+            val id = m.groupValues[1]
+            val body = m.groupValues[2]
+            val firstPart = body.indexOf("<part")
+            nameMeta.find(if (firstPart >= 0) body.substring(0, firstPart) else body)?.let { names[id] = unescape(it.groupValues[1]) }
+            // Only normal parts are printed; negative volumes, modifiers and support blockers/enforcers are not.
+            val skip = partTag.findAll(body).mapNotNull { p ->
+                val sub = attr(p.groupValues[1], "subtype") ?: return@mapNotNull null
+                if (sub == "normal_part") null else attr(p.groupValues[1], "id")
+            }.toSet()
+            if (skip.isNotEmpty()) skipped[id] = skip
+        }
+        return ProjectSettings(names, skipped)
+    }
+
+    private fun unescape(s: String) = s.replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+    /** "Arm rechts.stp" -> "Arm rechts". */
+    private fun cleanName(n: String) = n.replace(Regex("""\.(stl|obj|stp|step|3mf|amf)$""", RegexOption.IGNORE_CASE), "").ifBlank { n }
 
     private fun parseModel(text: String): ModelFile {
         val mf = ModelFile()

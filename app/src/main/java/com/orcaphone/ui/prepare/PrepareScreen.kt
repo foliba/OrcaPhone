@@ -192,11 +192,14 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             }
         }
 
-        ViewControls(
-            overhang = overhang, onOverhang = { overhang = !overhang },
-            onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
-            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
-        )
+        // Nothing to look at on an empty plate, and the buttons would sit behind the "plate is empty" card.
+        if (objects.isNotEmpty()) {
+            ViewControls(
+                overhang = overhang, onOverhang = { overhang = !overhang },
+                onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
+            )
+        }
 
         if (objects.isEmpty() && busy == null && ac == null) {
             if (beds.size > 1) {
