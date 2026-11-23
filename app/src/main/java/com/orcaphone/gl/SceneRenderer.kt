@@ -4,6 +4,7 @@ import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import com.orcaphone.core.mesh.Mesh
+import com.orcaphone.core.mesh.VolumeKind
 import com.orcaphone.core.plate.PlateObject
 import com.orcaphone.core.preview.PreviewGeometry
 import java.nio.ByteBuffer
@@ -224,7 +225,7 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
 
     private fun drawObjects(scene: PrepareScene) {
         // free meshes that left the plate
-        val live = scene.objects.map { it.mesh }.toSet()
+        val live = (scene.objects.map { it.mesh } + scene.objects.flatMap { o -> o.volumes.map { it.mesh } }).toSet()
         val it = meshCache.entries.iterator()
         while (it.hasNext()) {
             val e = it.next()
@@ -277,6 +278,42 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
                 GLES30.glDisableVertexAttribArray(2)
             }
             GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, gpu.vertexCount)
+        }
+        // Volumes from 3MF projects, see-through over the parts: holes grey, blockers red, enforcers blue.
+        if (scene.faceColors == null && scene.objects.any { it.volumes.isNotEmpty() }) {
+            GLES30.glEnable(GLES30.GL_BLEND)
+            GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+            GLES30.glDepthMask(false)
+            GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_alpha"), 0.38f)
+            GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_overhangCos"), -2f)
+            GLES30.glUniform1f(vcolLoc, 0f)
+            GLES30.glDisableVertexAttribArray(2)
+            for (obj in scene.objects) {
+                if (obj.volumes.isEmpty()) continue
+                val m = obj.worldMatrix
+                GLES30.glUniformMatrix4fv(modelLoc, 1, false, m.toFloatArray(), 0)
+                val inv = m.inverseAffine()
+                val n = FloatArray(9)
+                for (c in 0 until 3) for (r in 0 until 3) n[c * 3 + r] = inv.m[r * 4 + c].toFloat()
+                GLES30.glUniformMatrix3fv(nrmLoc, 1, false, n, 0)
+                for (v in obj.volumes) {
+                    val gpu = meshCache.getOrPut(v.mesh) { upload(v.mesh) }
+                    when (v.kind) {
+                        VolumeKind.NEGATIVE -> GLES30.glUniform3f(colorLoc, 0.55f, 0.57f, 0.62f)
+                        VolumeKind.SUPPORT_BLOCKER -> GLES30.glUniform3f(colorLoc, 0.92f, 0.26f, 0.24f)
+                        VolumeKind.SUPPORT_ENFORCER -> GLES30.glUniform3f(colorLoc, 0.2f, 0.5f, 0.95f)
+                    }
+                    GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, gpu.vbo)
+                    GLES30.glEnableVertexAttribArray(0)
+                    GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 24, 0)
+                    GLES30.glEnableVertexAttribArray(1)
+                    GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, 24, 12)
+                    GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, gpu.vertexCount)
+                }
+            }
+            GLES30.glDepthMask(true)
+            GLES30.glDisable(GLES30.GL_BLEND)
+            GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_alpha"), 1f)
         }
         GLES30.glDisableVertexAttribArray(0)
         GLES30.glDisableVertexAttribArray(1)

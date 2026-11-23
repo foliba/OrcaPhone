@@ -8,7 +8,14 @@ import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class LoadedModel(val name: String, val mesh: Mesh)
+class LoadedModel(
+    val name: String,
+    val mesh: Mesh,
+    /** Negative volumes and support blockers/enforcers, in the same coordinates as [mesh]. */
+    val volumes: List<PartVolume> = emptyList(),
+    /** Modifier volumes that were dropped: per-region settings are not supported. */
+    val ignoredModifiers: Int = 0,
+)
 
 /** Loads STL (binary/ASCII), OBJ and 3MF files into meshes. */
 object MeshLoader {
@@ -154,13 +161,32 @@ object MeshLoader {
         val unit = Mat4.scale(root.unitScale, root.unitScale, root.unitScale)
         for ((n, item) in items.withIndex()) {
             val soup = FloatArrayBuilder(1024)
-            val skip = settings.skippedParts[item.objectId].orEmpty()
-            appendObject(files, rootKey, item.objectId, unit * item.transform, soup, 0, skip)
+            val subtypes = settings.partSubtypes[item.objectId].orEmpty()
+            val itemT = unit * item.transform
+            appendObject(files, rootKey, item.objectId, itemT, soup, 0, subtypes.keys)
             if (soup.size == 0) continue
+            val mesh = Mesh.fromTriangleSoup(soup.toArray())
+            // the non-printing parts, each as its own volume
+            val volumes = ArrayList<PartVolume>()
+            var modifiers = 0
+            val top = root.objects[item.objectId]
+            for (c in top?.components.orEmpty()) {
+                val sub = subtypes[c.objectId] ?: continue
+                val kind = when (sub) {
+                    "negative_part" -> VolumeKind.NEGATIVE
+                    "support_blocker" -> VolumeKind.SUPPORT_BLOCKER
+                    "support_enforcer" -> VolumeKind.SUPPORT_ENFORCER
+                    else -> { modifiers++; null }
+                } ?: continue
+                val vs = FloatArrayBuilder(256)
+                val cp = c.path?.let { "/" + it.trimStart('/') } ?: rootKey
+                appendObject(files, cp, c.objectId, itemT * c.transform, vs, 1)
+                if (vs.size > 0) volumes.add(PartVolume(kind, Mesh.fromTriangleSoup(clampTo(vs.toArray(), mesh.bounds()))))
+            }
             val name = root.objects[item.objectId]?.name?.takeIf { it.isNotBlank() }
                 ?: settings.names[item.objectId]?.takeIf { it.isNotBlank() }?.let { cleanName(it) }
                 ?: if (items.size > 1) "$baseName ${n + 1}" else baseName
-            result.add(LoadedModel(name, Mesh.fromTriangleSoup(soup.toArray())))
+            result.add(LoadedModel(name, mesh, volumes, modifiers))
         }
         return result
     }
@@ -194,8 +220,25 @@ object MeshLoader {
     /** Object names and non-printing parts from a Bambu Studio / OrcaSlicer project (Metadata/model_settings.config). */
     private class ProjectSettings(
         val names: Map<String, String> = emptyMap(),
-        val skippedParts: Map<String, Set<String>> = emptyMap(),
+        /** Object id -> (part id -> subtype) for every part that is not a normal printed part. */
+        val partSubtypes: Map<String, Map<String, String>> = emptyMap(),
     )
+
+    /**
+     * Pulls a volume's vertices into the part's bounds (plus a margin). Bambu Studio makes support blockers
+     * "endless" by scaling them by ~1e28; clamped they keep their footprint, and slicing and drawing stay sane.
+     */
+    private fun clampTo(soup: FloatArray, b: Bounds3): FloatArray {
+        // before welding: vertex welding works relative to the mesh size, which would be ~1e28
+        val e = 1.0
+        val v = soup.copyOf()
+        for (i in v.indices step 3) {
+            v[i] = v[i].coerceIn((b.minX - e).toFloat(), (b.maxX + e).toFloat())
+            v[i + 1] = v[i + 1].coerceIn((b.minY - e).toFloat(), (b.maxY + e).toFloat())
+            v[i + 2] = v[i + 2].coerceIn((b.minZ - e).toFloat(), (b.maxZ + e).toFloat())
+        }
+        return v
+    }
 
     private val objectBlock = Regex("""<object\s+id="([^"]+)"\s*>(.*?)</object>""", RegexOption.DOT_MATCHES_ALL)
     private val partTag = Regex("""<part\s([^>]*)>""")
@@ -205,7 +248,7 @@ object MeshLoader {
 
     private fun parseProjectSettings(text: String): ProjectSettings {
         val names = HashMap<String, String>()
-        val skipped = HashMap<String, Set<String>>()
+        val skipped = HashMap<String, Map<String, String>>()
         for (m in objectBlock.findAll(text)) {
             val id = m.groupValues[1]
             val body = m.groupValues[2]
@@ -214,8 +257,9 @@ object MeshLoader {
             // Only normal parts are printed; negative volumes, modifiers and support blockers/enforcers are not.
             val skip = partTag.findAll(body).mapNotNull { p ->
                 val sub = attr(p.groupValues[1], "subtype") ?: return@mapNotNull null
-                if (sub == "normal_part") null else attr(p.groupValues[1], "id")
-            }.toSet()
+                val pid = attr(p.groupValues[1], "id") ?: return@mapNotNull null
+                if (sub == "normal_part") null else pid to sub
+            }.toMap()
             if (skip.isNotEmpty()) skipped[id] = skip
         }
         return ProjectSettings(names, skipped)

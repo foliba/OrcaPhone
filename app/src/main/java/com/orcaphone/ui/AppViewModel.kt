@@ -329,7 +329,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val models = withContext(Dispatchers.IO) {
                         cr.openInputStream(uri)?.use { MeshLoader.load(name, it) } ?: emptyList()
                     }
-                    for (m in models) loaded.add(PlateObject.create(nextId.getAndIncrement(), m.name, m.mesh))
+                    for (m in models) loaded.add(toPlateObject(m))
+                    reportIgnored(name, models)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -339,6 +340,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _busy.value = null
             addObjects(loaded)
         }
+    }
+
+    private fun toPlateObject(m: com.orcaphone.core.mesh.LoadedModel) =
+        PlateObject.create(nextId.getAndIncrement(), m.name, m.mesh, volumes = m.volumes)
+
+    /** Modifiers (per-region settings) are not supported: say so instead of dropping them silently. */
+    private fun reportIgnored(file: String, models: List<com.orcaphone.core.mesh.LoadedModel>) {
+        val n = models.sumOf { it.ignoredModifiers }
+        if (n > 0) say("$file: ${if (n == 1) "1 modifier was" else "$n modifiers were"} ignored (per-region settings aren't supported yet)")
     }
 
     private fun displayName(uri: Uri): String {
@@ -435,7 +445,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             ensureActive()
                             try { dest.inputStream().buffered().use { MeshLoader.load(f.name, it) } } finally { dest.delete() }
                         }
-                        for (m in models) loaded.add(PlateObject.create(nextId.getAndIncrement(), m.name, m.mesh))
+                        for (m in models) loaded.add(toPlateObject(m))
+                        reportIgnored(f.name, models)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: ModelSourceException) {
@@ -789,6 +800,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (st.progress != null) return
         val obj = plate.firstOrNull { it.id == st.objectId } ?: run { _autoCut.value = null; return }
         val laid = laidOn(obj, normal, st.turn90)
+        if (plan.needsCut && obj.volumes.isNotEmpty()) {
+            say("The parts of ${obj.name} don't keep its holes and support blockers/enforcers from the 3MF project")
+        }
         if (!plan.needsCut) {
             plate = plate.map { if (it.id == obj.id) laid.movedTo(printer.bedWidth / 2, printer.bedDepth / 2) else it }
             _autoCut.value = null
@@ -869,7 +883,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val dir = gcodeDir(bedId).apply { deleteRecursively(); mkdirs() }
                     val tmp = File(dir, "plate.gcode")
                     var lastUpdate = 0L
-                    val result = Slicer(p, filament, process, token).slice(objs.map { it.worldMesh() }, tmp) { stage, f ->
+                    val result = Slicer(p, filament, process, token).slice(objs.map { it.worldMesh() }, tmp, objs.flatMap { it.worldVolumes() }) { stage, f ->
                         val now = System.currentTimeMillis()
                         if (!token.isCancelled && (now - lastUpdate > 60 || f >= 1f)) {
                             lastUpdate = now

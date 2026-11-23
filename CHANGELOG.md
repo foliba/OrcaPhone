@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.3 — 3MF volumes
+
+### New
+- **Negative volumes** from Bambu Studio / OrcaSlicer 3MF projects are cut out of their part (holes,
+  recesses), instead of being dropped.
+- **Support blockers and enforcers** from 3MF projects are kept with their object: no support is
+  generated inside a blocker, and overhangs inside an enforcer always get support, also when support is
+  switched off (as in OrcaSlicer). Works with normal, tree and organic support.
+- In the 3D view the volumes show see-through over the part: negative volumes grey, blockers red,
+  enforcers blue. The object panel lists them. They move, turn and scale with the object and its instances.
+- **Modifiers** (per-region settings) are not supported yet: importing a file with modifiers now says
+  how many were ignored.
+
+### Notes
+- Bambu's "endless" support blockers are cut to the part's height so they can be drawn and sliced.
+- Auto cut parts don't keep the volumes; you are told when that happens.
+
 ## 0.4.2 — Bambu Studio / MakerWorld 3MF
 
 ### Fixes

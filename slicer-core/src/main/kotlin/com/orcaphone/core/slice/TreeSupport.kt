@@ -85,6 +85,7 @@ object TreeSupportGenerator {
     fun generate(
         regions: Array<Geometry>, heights: DoubleArray, p: ProcessProfile, lineWidth: Double,
         runner: ParallelRunner, cancel: CancelToken, progress: (Float) -> Unit,
+        masks: SupportMasks? = null,
     ): Array<SupportLayer> {
         val n = regions.size
         val empty = SupportLayer(Geo.EMPTY, Geo.EMPTY)
@@ -98,7 +99,7 @@ object TreeSupportGenerator {
         val spacing = prm.spacing
 
         // 1. overhangs and the layers holding their tips
-        val overhang = SupportGenerator.detectOverhangs(regions, h, p, lineWidth, runner)
+        val overhang = SupportGenerator.detectOverhangs(regions, h, p, lineWidth, runner, masks)
         progress(0.1f)
         val tipLayer = IntArray(n) { i -> i - 1 - gap - roofLayers }
         val tips = arrayOfNulls<List<DoubleArray>>(n)

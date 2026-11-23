@@ -5,13 +5,13 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.4.2**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.4.3**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
 **Prepare**
-- Import **STL** (binary/ASCII), **3MF** (incl. multi-object and component files from Orca/Bambu/Prusa) and **OBJ** from the file picker, or via *Open with* / *Share* from other apps
+- Import **STL** (binary/ASCII), **3MF** (incl. multi-object and component files from Orca/Bambu/Prusa/MakerWorld, with negative volumes and support blockers/enforcers; modifiers are ignored) and **OBJ** from the file picker, or via *Open with* / *Share* from other apps
 - 3D plate view (OpenGL ES 3): one finger orbits, two fingers pan and pinch-zoom, double tap fits the view
 - **Import from Printables**: paste a printables.com model link, see its STL/3MF files with previews, sizes,
   author and licence, pick files and import (3MF as geometry only for now)

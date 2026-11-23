@@ -1,6 +1,7 @@
 package com.orcaphone.core
 
 import com.orcaphone.core.mesh.MeshLoader
+import com.orcaphone.core.mesh.VolumeKind
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -62,18 +63,22 @@ class ThreeMfTest {
     private val ns = """xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06""""
 
     private fun bambuFile(): ByteArray {
-        val parts = """<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" $ns><resources>${cube(1, 20.0)}${cube(2, 5.0)}</resources><build/></model>"""
+        val parts = """<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" $ns><resources>${cube(1, 20.0)}${cube(2, 5.0)}${cube(4, 5.0)}${cube(5, 5.0)}</resources><build/></model>"""
         // object 3 = the head (part 1) plus a support blocker (part 2) stretched enormously in Z, as Bambu does
         val root = """<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" $ns><resources>
             <object id="3" type="model"><components>
               <component p:path="/3D/Objects/object_1.model" objectid="1" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>
               <component p:path="/3D/Objects/object_1.model" objectid="2" transform="1 0 0 0 1 0 0 0 1e28 0 0 0"/>
+              <component p:path="/3D/Objects/object_1.model" objectid="4" transform="1 0 0 0 1 0 0 0 1 5 5 5"/>
+              <component p:path="/3D/Objects/object_1.model" objectid="5" transform="1 0 0 0 1 0 0 0 1 2 2 2"/>
             </components></object></resources>
             <build><item objectid="3" transform="1 0 0 0 1 0 0 0 1 100 100 0" printable="1"/></build></model>"""
         val settings = """<?xml version="1.0" encoding="UTF-8"?><config>
             <object id="3"><metadata key="name" value="Kopf.obj"/><metadata key="extruder" value="4"/>
               <part id="1" subtype="normal_part"><metadata key="name" value="Kopf.obj"/></part>
               <part id="2" subtype="support_blocker"><metadata key="name" value="Generisch-Zylinder"/></part>
+              <part id="4" subtype="negative_part"><metadata key="name" value="Loch"/></part>
+              <part id="5" subtype="modifier_part"><metadata key="name" value="Infill"/></part>
             </object></config>"""
         val png = ByteArray(300) { (it * 7).toByte() }
         return bambuZip(
@@ -96,9 +101,19 @@ class ThreeMfTest {
         val models = MeshLoader.load("Brick+Men.3mf", bytes.inputStream())
         assertEquals(1, models.size)
         assertEquals("Kopf", models[0].name)
-        // only the head: the support blocker is not printed geometry
+        // only the head: blocker, negative volume and modifier are not printed geometry
         assertEquals(12, models[0].mesh.triangleCount)
         val b = models[0].mesh.bounds()
         assertTrue(b.sizeZ < 20.0 + 1e-6, "support blocker merged into the part: height ${b.sizeZ}")
+        // the blocker and the negative volume are kept as volumes, the modifier is counted as ignored
+        val kinds = models[0].volumes.map { it.kind }.sorted()
+        assertEquals(listOf(VolumeKind.NEGATIVE, VolumeKind.SUPPORT_BLOCKER), kinds)
+        assertEquals(1, models[0].ignoredModifiers)
+        // the "endless" blocker is cut to the part's height (plus a margin)
+        val blocker = models[0].volumes.first { it.kind == VolumeKind.SUPPORT_BLOCKER }.mesh.bounds()
+        assertTrue(blocker.maxZ <= b.maxZ + 1.0 + 1e-3, "blocker reaches z=${blocker.maxZ}")
+        assertTrue(blocker.sizeX in 4.9..5.1, "blocker footprint ${blocker.sizeX}")
+        val hole = models[0].volumes.first { it.kind == VolumeKind.NEGATIVE }.mesh.bounds()
+        assertEquals(105.0, hole.minX, 1e-3) // item transform moves everything by 100
     }
 }

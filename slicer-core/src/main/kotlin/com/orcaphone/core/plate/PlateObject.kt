@@ -4,6 +4,7 @@ import com.orcaphone.core.math.Mat4
 import com.orcaphone.core.math.Vec3
 import com.orcaphone.core.mesh.Bounds3
 import com.orcaphone.core.mesh.Mesh
+import com.orcaphone.core.mesh.PartVolume
 
 /**
  * An object placed on the build plate. Immutable: every edit returns a new instance.
@@ -21,6 +22,8 @@ class PlateObject private constructor(
     private val rsBounds: Bounds3,
     /** Instances of one model share a group: orientation and scale changes apply to all of them. */
     val group: Long = id,
+    /** Negative volumes and support blockers/enforcers, in mesh coordinates: they move with the object. */
+    val volumes: List<PartVolume> = emptyList(),
 ) {
     val linear: Mat4 get() = rotation * Mat4.scale(scale.x, scale.y, scale.z)
 
@@ -32,26 +35,26 @@ class PlateObject private constructor(
 
     val size: Vec3 get() = Vec3(rsBounds.sizeX, rsBounds.sizeY, rsBounds.sizeZ)
 
-    fun movedTo(nx: Double, ny: Double) = PlateObject(id, name, mesh, rotation, scale, nx, ny, rsBounds, group)
+    fun movedTo(nx: Double, ny: Double) = PlateObject(id, name, mesh, rotation, scale, nx, ny, rsBounds, group, volumes)
 
-    fun withName(n: String) = PlateObject(id, n, mesh, rotation, scale, x, y, rsBounds, group)
+    fun withName(n: String) = PlateObject(id, n, mesh, rotation, scale, x, y, rsBounds, group, volumes)
 
-    fun rotated(r: Mat4): PlateObject = create(id, name, mesh, r * rotation, scale, x, y, group)
+    fun rotated(r: Mat4): PlateObject = create(id, name, mesh, r * rotation, scale, x, y, group, volumes)
 
-    fun withRotation(r: Mat4): PlateObject = create(id, name, mesh, r, scale, x, y, group)
+    fun withRotation(r: Mat4): PlateObject = create(id, name, mesh, r, scale, x, y, group, volumes)
 
-    fun scaled(s: Vec3): PlateObject = create(id, name, mesh, rotation, s, x, y, group)
+    fun scaled(s: Vec3): PlateObject = create(id, name, mesh, rotation, s, x, y, group, volumes)
 
     /** Takes over the orientation and scale of [other] (an instance of the same model), keeping the position. */
     fun withTransformOf(other: PlateObject) =
-        if (other.mesh === mesh) PlateObject(id, name, mesh, other.rotation, other.scale, x, y, other.rsBounds, group)
-        else create(id, name, mesh, other.rotation, other.scale, x, y, group)
+        if (other.mesh === mesh) PlateObject(id, name, mesh, other.rotation, other.scale, x, y, other.rsBounds, group, volumes)
+        else create(id, name, mesh, other.rotation, other.scale, x, y, group, volumes)
 
     /** An independent copy: its own group. */
-    fun withId(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, newId)
+    fun withId(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, newId, volumes)
 
     /** Another instance of the same model: shares mesh, orientation, scale and group. */
-    fun instance(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, group)
+    fun instance(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, group, volumes)
 
     fun layFlat(): PlateObject {
         val n = mesh.bestLayFlatNormal(linear) ?: return this
@@ -59,6 +62,11 @@ class PlateObject private constructor(
     }
 
     fun worldMesh(): Mesh = mesh.transformed(worldMatrix)
+
+    /** The volumes placed like the object. */
+    fun worldVolumes(): List<PartVolume> = worldMatrix.let { m -> volumes.map { it.transformed(m) } }
+
+    fun withVolumes(v: List<PartVolume>) = PlateObject(id, name, mesh, rotation, scale, x, y, rsBounds, group, v)
 
     fun isInside(bedW: Double, bedD: Double, maxH: Double): Boolean {
         val b = worldBounds
@@ -72,9 +80,10 @@ class PlateObject private constructor(
             rotation: Mat4 = Mat4.identity(), scale: Vec3 = Vec3.ONE,
             x: Double = 0.0, y: Double = 0.0,
             group: Long = id,
+            volumes: List<PartVolume> = emptyList(),
         ): PlateObject {
             val lin = rotation * Mat4.scale(scale.x, scale.y, scale.z)
-            return PlateObject(id, name, mesh, rotation, scale, x, y, mesh.bounds(lin), group)
+            return PlateObject(id, name, mesh, rotation, scale, x, y, mesh.bounds(lin), group, volumes)
         }
     }
 }

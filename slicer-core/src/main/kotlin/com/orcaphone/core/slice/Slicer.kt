@@ -11,6 +11,8 @@ import com.orcaphone.core.config.WallOrder
 import com.orcaphone.core.gcode.GCodeGenerator
 import com.orcaphone.core.gcode.PrintStats
 import com.orcaphone.core.mesh.Mesh
+import com.orcaphone.core.mesh.PartVolume
+import com.orcaphone.core.mesh.VolumeKind
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.Polygon
 import java.io.File
@@ -66,7 +68,11 @@ class Slicer(
         var support: SupportLayer? = null
     }
 
-    fun slice(meshes: List<Mesh>, outFile: File, progress: SliceProgress): SliceResult {
+    /**
+     * Slices [meshes] (already placed on the bed) into [outFile]. [volumes] are the objects' negative volumes,
+     * cut out of the parts, and support blockers/enforcers, also placed on the bed.
+     */
+    fun slice(meshes: List<Mesh>, outFile: File, volumes: List<PartVolume> = emptyList(), progress: SliceProgress): SliceResult {
         require(meshes.isNotEmpty()) { "Nothing to slice" }
         val warnings = ArrayList<String>()
         ParallelRunner(cancel = cancel).use { runner ->
@@ -90,9 +96,20 @@ class Slicer(
             progress.update("Slicing mesh", 0.02f)
             val regions = Array<Geometry>(n) { Geo.EMPTY }
             val perObject = meshes.map { MeshSlicer(it).slice(sliceZ, runner) }
-            runner.forEach(n) { i ->
-                regions[i] = Geo.union(perObject.map { it[i] })
+            fun sliceKind(kind: VolumeKind): Array<Geometry>? {
+                val ms = volumes.filter { it.kind == kind }.map { it.mesh }
+                if (ms.isEmpty()) return null
+                val per = ms.map { MeshSlicer(it).slice(sliceZ, runner) }
+                return Array(n) { i -> Geo.union(per.map { it[i] }) }
             }
+            val negative = sliceKind(VolumeKind.NEGATIVE)
+            runner.forEach(n) { i ->
+                val merged = Geo.union(perObject.map { it[i] })
+                // negative volumes: holes and recesses
+                regions[i] = negative?.get(i)?.takeIf { !it.isEmpty }?.let { Geo.difference(merged, it) } ?: merged
+            }
+            val blockers = sliceKind(VolumeKind.SUPPORT_BLOCKER)
+            val enforcers = sliceKind(VolumeKind.SUPPORT_ENFORCER)
             cancel.check()
             progress.update("Generating walls", 0.15f)
 
@@ -124,13 +141,17 @@ class Slicer(
             }
 
             // 4. supports
-            if (p.enableSupport) {
+            val masks = if (blockers == null && enforcers == null) null else SupportMasks(
+                blockers ?: Array(n) { Geo.EMPTY }, enforcers ?: Array(n) { Geo.EMPTY }, auto = p.enableSupport,
+            )
+            // enforcers add support even with support switched off, as in OrcaSlicer
+            if (p.enableSupport || (enforcers != null && !p.spiralMode)) {
                 progress.update("Generating supports", 0.45f)
                 val heights = DoubleArray(n) { tops[it] - bottoms[it] }
                 val onProgress: (Float) -> Unit = { progress.update("Generating supports", 0.45f + 0.15f * it) }
                 val sup = if (p.supportType != SupportType.NORMAL)
-                    TreeSupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress)
-                else SupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress)
+                    TreeSupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress, masks)
+                else SupportGenerator.generate(regions, heights, p, p.lineWidth, runner, cancel, onProgress, masks)
                 for (i in 0 until n) L[i].support = sup[i]
             }
 

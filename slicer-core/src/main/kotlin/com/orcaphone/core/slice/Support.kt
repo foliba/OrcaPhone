@@ -14,6 +14,12 @@ import kotlin.math.tan
 class SupportLayer(val base: Geometry, val interfaceArea: Geometry, val walls: Int = 0, val infill: Boolean = true)
 
 /**
+ * Support blocker and enforcer areas per layer (from the object's volumes). With [auto] off only enforced
+ * overhangs get support: support is switched off in the process but the model has enforcers.
+ */
+class SupportMasks(val blockers: Array<Geometry>, val enforcers: Array<Geometry>, val auto: Boolean = true)
+
+/**
  * "Normal" (grid-style) support: overhangs are detected by comparing each layer with the
  * one below (offset by the threshold-angle allowance) and projected down to the plate.
  */
@@ -23,20 +29,36 @@ object SupportGenerator {
      * Areas of each layer that need support: detected with the threshold-angle allowance, then the
      * whole overhanging strip (R[i] - R[i-1]) near the detection so gentle slopes form a continuous area.
      */
-    fun detectOverhangs(regions: Array<Geometry>, h: Double, p: ProcessProfile, lineWidth: Double, runner: ParallelRunner): Array<Geometry> {
+    fun detectOverhangs(
+        regions: Array<Geometry>, h: Double, p: ProcessProfile, lineWidth: Double, runner: ParallelRunner,
+        masks: SupportMasks? = null,
+    ): Array<Geometry> {
         val n = regions.size
         val angle = p.supportThresholdAngle.coerceIn(1.0, 89.0) * PI / 180
         val allowance = h / tan(angle)
         val overhang = Array<Geometry>(n) { Geo.EMPTY }
         if (n < 2) return overhang
+        val auto = masks?.auto ?: true
         runner.forEach(n - 1) { k ->
             val i = k + 1
-            val below = Geo.offset(regions[i - 1], allowance)
-            val detected = Geo.open(Geo.difference(regions[i], below), 0.02)
-            if (Geo.removeSmall(detected, lineWidth * lineWidth * 0.25).isEmpty) return@forEach
-            val strip = Geo.difference(regions[i], regions[i - 1])
-            val o = Geo.intersection(strip, Geo.offset(detected, allowance + lineWidth))
-            overhang[i] = Geo.simplify(Geo.removeSmall(o, lineWidth * lineWidth * 0.5), 0.03)
+            var o: Geometry = Geo.EMPTY
+            if (auto) {
+                val below = Geo.offset(regions[i - 1], allowance)
+                val detected = Geo.open(Geo.difference(regions[i], below), 0.02)
+                if (!Geo.removeSmall(detected, lineWidth * lineWidth * 0.25).isEmpty) {
+                    val strip = Geo.difference(regions[i], regions[i - 1])
+                    o = Geo.intersection(strip, Geo.offset(detected, allowance + lineWidth))
+                }
+            }
+            if (masks != null) {
+                // support enforcers: every overhang inside them, whatever its angle
+                val enf = masks.enforcers.getOrNull(i)
+                if (enf != null && !enf.isEmpty) o = Geo.union(o, Geo.intersection(Geo.difference(regions[i], regions[i - 1]), enf))
+                // support blockers: nothing inside them
+                val blk = masks.blockers.getOrNull(i)
+                if (blk != null && !blk.isEmpty && !o.isEmpty) o = Geo.difference(o, blk)
+            }
+            if (!o.isEmpty) overhang[i] = Geo.simplify(Geo.removeSmall(o, lineWidth * lineWidth * 0.5), 0.03)
         }
         return overhang
     }
@@ -44,6 +66,7 @@ object SupportGenerator {
     fun generate(
         regions: Array<Geometry>, heights: DoubleArray, p: ProcessProfile, lineWidth: Double,
         runner: ParallelRunner, cancel: CancelToken, progress: (Float) -> Unit,
+        masks: SupportMasks? = null,
     ): Array<SupportLayer> {
         val n = regions.size
         val empty = SupportLayer(Geo.EMPTY, Geo.EMPTY)
@@ -53,7 +76,7 @@ object SupportGenerator {
         val xy = p.supportObjectXYDistance + lineWidth / 2
 
         // 1. overhangs per layer
-        val overhang = detectOverhangs(regions, h, p, lineWidth, runner)
+        val overhang = detectOverhangs(regions, h, p, lineWidth, runner, masks)
         progress(0.3f)
         // 2. grown model for clearance
         val clearance = Array<Geometry>(n) { Geo.EMPTY }

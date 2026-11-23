@@ -225,6 +225,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
                 ObjectPanel(
                     name = selected.name,
                     instances = objects.count { it.group == selected.group },
+                    volumes = volumeSummary(selected),
                     size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
                     outside = !inside,
                     onRotate = { sheet = PrepareSheet.ROTATE },
@@ -537,6 +538,7 @@ private fun ObjectPanel(
     onRotate: () -> Unit, onScale: () -> Unit, onLayFlat: () -> Unit, onCenter: () -> Unit,
     onInstances: () -> Unit, onDelete: () -> Unit,
     instances: Int = 1,
+    volumes: String? = null,
     bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
     tooBig: Boolean = false, onAutoCut: () -> Unit = {},
 ) {
@@ -580,6 +582,9 @@ private fun ObjectPanel(
                     }
                 }
             }
+            if (volumes != null) {
+                Text(volumes, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (tooBig) {
                 AssistChip(
                     onClick = onAutoCut,
@@ -597,6 +602,17 @@ private fun ObjectPanel(
             }
         }
     }
+}
+
+/** "1 hole (grey) · 1 support blocker (red)" for objects with volumes from a 3MF project, else null. */
+private fun volumeSummary(o: com.orcaphone.core.plate.PlateObject): String? {
+    if (o.volumes.isEmpty()) return null
+    fun n(kind: com.orcaphone.core.mesh.VolumeKind) = o.volumes.count { it.kind == kind }
+    return listOfNotNull(
+        n(com.orcaphone.core.mesh.VolumeKind.NEGATIVE).takeIf { it > 0 }?.let { "$it negative volume${if (it > 1) "s" else ""} (grey)" },
+        n(com.orcaphone.core.mesh.VolumeKind.SUPPORT_BLOCKER).takeIf { it > 0 }?.let { "$it support blocker${if (it > 1) "s" else ""} (red)" },
+        n(com.orcaphone.core.mesh.VolumeKind.SUPPORT_ENFORCER).takeIf { it > 0 }?.let { "$it support enforcer${if (it > 1) "s" else ""} (blue)" },
+    ).joinToString(" · ")
 }
 
 @Composable
