@@ -17,8 +17,8 @@ android {
         minSdk = 26
         // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.5.0"
+        versionCode = 14
+        versionName = "0.5.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -81,12 +81,18 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.webkit:webkit:1.12.1")
+    // draws the OrcaSlicer bed textures (SVG)
+    implementation("com.caverock:androidsvg-aar:1.4")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    // 3.7.0+: older Espresso calls InputManager.getInstance(), which Android 17 removed (every UI test fails);
+    // declared explicitly so it wins over the older one Compose's ui-test pulls in
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 

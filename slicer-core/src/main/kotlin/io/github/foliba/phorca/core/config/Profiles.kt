@@ -82,6 +82,8 @@ data class PrinterProfile(
     val builtin: Boolean = false,
     val cloud: CloudMeta? = null,
     val vendor: String = "Custom",
+    /** OrcaSlicer printer model ("Sovol SV06"), for the bed graphics; empty for custom printers. */
+    val printerModel: String = "",
     val bedWidth: Double = 220.0,
     val bedDepth: Double = 220.0,
     val maxHeight: Double = 250.0,

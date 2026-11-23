@@ -1,0 +1,1564 @@
+{
+"models": {
+"Anker M5": {
+"model": "Anker/M5-CE-bed.pbed",
+"texture": "Anker/M5-CE-texture.svg"
+},
+"Anker M5 All-Metal Hot End": {
+"model": "Anker/M5-CE-bed.pbed",
+"texture": "Anker/M5-CE-texture.svg"
+},
+"Anker M5C": {
+"model": "Anker/M5C-CE-bed.pbed",
+"texture": "Anker/M5-CE-texture.svg"
+},
+"Anycubic 4Max Pro": {
+"model": "Anycubic/anycubic_4maxpro_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_4maxpro_buildplate_texture.svg"
+},
+"Anycubic 4Max Pro 2": {
+"model": "Anycubic/anycubic_4maxpro2_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_4maxpro2_buildplate_texture.svg"
+},
+"Anycubic Chiron": {
+"model": "Anycubic/anycubic_chiron_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_chiron_buildplate_texture.svg"
+},
+"Anycubic Kobra": {
+"model": "Anycubic/anycubic_kobra_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_kobra_buildplate_texture.svg"
+},
+"Anycubic Kobra 2": {
+"model": "Anycubic/anycubic_kobra2_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_kobra2_buildplate_texture.svg"
+},
+"Anycubic Kobra 2 Max": {
+"model": "Anycubic/Anycubic Kobra 2 Max_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 2 Max_buildplate_texture.svg"
+},
+"Anycubic Kobra 2 Neo": {
+"model": "Anycubic/Anycubic Kobra 2 Neo_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 2 Neo_buildplate_texture.svg"
+},
+"Anycubic Kobra 2 Plus": {
+"model": "Anycubic/Anycubic Kobra 2 Plus_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 2 Plus_buildplate_texture.svg"
+},
+"Anycubic Kobra 2 Pro": {
+"model": "Anycubic/Anycubic Kobra 2 Pro_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 2 Pro_buildplate_texture.svg"
+},
+"Anycubic Kobra 3": {
+"model": "Anycubic/Anycubic Kobra 3_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 3_buildplate_texture.svg"
+},
+"Anycubic Kobra 3 Max": {
+"model": "Anycubic/Anycubic Kobra 3 Max_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 3 Max_buildplate_texture.svg"
+},
+"Anycubic Kobra 3 V2": {
+"model": "Anycubic/Anycubic Kobra 3 V2_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra 3 V2_buildplate_texture.svg"
+},
+"Anycubic Kobra Max": {
+"model": "Anycubic/anycubic_kobramax_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_kobramax_buildplate_texture.svg"
+},
+"Anycubic Kobra Neo": {
+"model": "Anycubic/Anycubic Kobra Neo_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra Neo_buildplate_texture.svg"
+},
+"Anycubic Kobra Plus": {
+"model": "Anycubic/anycubic_kobraplus_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_kobraplus_buildplate_texture.svg"
+},
+"Anycubic Kobra S1": {
+"model": "Anycubic/Anycubic Kobra S1_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra S1_buildplate_texture.svg"
+},
+"Anycubic Kobra S1 Max": {
+"model": "Anycubic/Anycubic Kobra S1 Max_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra S1 Max_buildplate_texture.svg"
+},
+"Anycubic Kobra X": {
+"model": "Anycubic/Anycubic Kobra X_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Kobra X_buildplate_texture.svg"
+},
+"Anycubic Predator": {
+"model": "Anycubic/Anycubic Predator_buildplate_model.pbed",
+"texture": "Anycubic/Anycubic Predator_buildplate_texture.svg"
+},
+"Anycubic Vyper": {
+"model": "Anycubic/anycubic_vyper_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_vyper_buildplate_texture.svg"
+},
+"Anycubic i3 Mega S": {
+"model": "Anycubic/anycubic_i3megas_buildplate_model.pbed",
+"texture": "Anycubic/anycubic_i3megas_buildplate_texture.svg"
+},
+"Artillery Genius": {
+"model": "Artillery/artillery_genius_buildplate_model.pbed",
+"texture": "Artillery/artillery_genius_buildplate_texture.svg"
+},
+"Artillery Genius Pro": {
+"model": "Artillery/artillery_geniuspro_buildplate_model.pbed",
+"texture": "Artillery/artillery_geniuspro_buildplate_texture.svg"
+},
+"Artillery Hornet": {
+"model": "Artillery/artillery_hornet_buildplate_model.pbed",
+"texture": "Artillery/artillery_hornet_buildplate_texture.svg"
+},
+"Artillery M1 Pro": {
+"model": "Artillery/artillery_m1_pro_buildplate_model.pbed",
+"texture": "Artillery/artillery_m1_pro_buildplate_texture.svg"
+},
+"Artillery Sidewinder X1": {
+"model": "Artillery/artillery_sidewinderx1_buildplate_model.pbed",
+"texture": "Artillery/artillery_sidewinderx1_buildplate_texture.svg"
+},
+"Artillery Sidewinder X2": {
+"model": "Artillery/artillery_sidewinderx2_buildplate_model.pbed",
+"texture": "Artillery/artillery_sidewinderx2_buildplate_texture.svg"
+},
+"Artillery Sidewinder X3 Plus": {
+"model": "Artillery/artillery_sidewinderx3plus_buildplate_model.pbed"
+},
+"Artillery Sidewinder X3 Pro": {
+"model": "Artillery/artillery_sidewinderx3pro_buildplate_model.pbed"
+},
+"Artillery Sidewinder X4 Plus": {
+"model": "Artillery/artillery_sidewinderx4plus_buildplate_model.pbed"
+},
+"Artillery Sidewinder X4 Pro": {
+"model": "Artillery/artillery_sidewinderx4pro_buildplate_model.pbed"
+},
+"BIQU B1": {
+"model": "BIQU/BIQU_B1_buildplate_model.pbed",
+"texture": "BIQU/BIQU_B1_buildplate_texture.svg"
+},
+"BIQU BX": {
+"model": "BIQU/BIQU_BX_buildplate_model.pbed",
+"texture": "BIQU/BIQU_BX_buildplate_texture.svg"
+},
+"BIQU Hurakan": {
+"model": "BIQU/BIQU_Hurakan_buildplate_model.pbed",
+"texture": "BIQU/BIQU_Hurakan_buildplate_texture.svg"
+},
+"BLOCKS Pro S100": {
+"model": "Blocks/PRO S100 HotBed model.pbed",
+"texture": "Blocks/PRO S100 HotBed texture.svg"
+},
+"BLOCKS RD50 V2": {
+"model": "Blocks/RD50 V2 HotBed model.pbed",
+"texture": "Blocks/RD50 V2 HotBed texture.svg"
+},
+"BLOCKS RF50": {
+"model": "Blocks/RF50 HotBed model.pbed",
+"texture": "Blocks/RF50 HotBed texture.svg"
+},
+"BabyBelt Pro": {
+"texture": "Printcepts/BabyBelt Pro_bed_texture.svg"
+},
+"Bambu Lab A1": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab A1 mini": {
+"model": "BBL/bbl-3dp-A1M.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab A2L": {
+"model": "BBL/bbl-3dp-H2C.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab H2C": {
+"model": "BBL/bbl-3dp-H2C.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab H2D": {
+"model": "BBL/bbl-3dp-H2D.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab H2D Pro": {
+"model": "BBL/bbl-3dp-H2D.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab H2S": {
+"model": "BBL/bbl-3dp-O1S.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab P1P": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab P1S": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab P2S": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab X1": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab X1 Carbon": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab X1E": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"Bambu Lab X2D": {
+"model": "BBL/bbl-3dp-X1.pbed",
+"texture": "BBL/bbl-3dp-logo.svg"
+},
+"BenFab 450": {
+"model": "BenFab/benfab_450_buildplate_model.pbed",
+"texture": "BenFab/benfab_450_buildplate_texture.svg"
+},
+"Chuanying X1": {
+"model": "Chuanying/chuanying_x1_buildplate_model.pbed",
+"texture": "Chuanying/chuanying_x1_buildplate_texture.svg"
+},
+"Co Print ChromaSet": {
+"texture": "Co Print/Co_Print_ChromaSet_buildplate_texture.svg"
+},
+"Comgrow T300": {
+"model": "Comgrow/comgrow_t300_buildplate_model.pbed",
+"texture": "Comgrow/comgrow_t300_buildplate_texture.svg"
+},
+"Comgrow T500": {
+"model": "Comgrow/comgrow_t500_buildplate_model.pbed",
+"texture": "Comgrow/comgrow_t500_buildplate_texture.svg"
+},
+"Construct 1": {
+"model": "CONSTRUCT3D/construct_1_buildplate_model.pbed"
+},
+"Construct 1 XL": {
+"model": "CONSTRUCT3D/construct_1_xl_buildplate_model.pbed"
+},
+"Creality CR-10": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality CR-10 Max": {
+"model": "Creality/creality_cr10max_buildplate_model.pbed",
+"texture": "Creality/creality_cr10max_buildplate_texture.svg"
+},
+"Creality CR-10 SE": {
+"model": "Creality/creality_cr10se_buildplate_model.pbed",
+"texture": "Creality/creality_cr10se_buildplate_texture.svg"
+},
+"Creality CR-10 Smart": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality CR-10 Smart Pro": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality CR-10 V2": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality CR-10 V3": {
+"model": "Creality/creality_cr10v3_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v3_buildplate_texture.svg"
+},
+"Creality CR-10S Pro V2": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality CR-20 Pro": {
+"model": "Creality/creality_k1_buildplate_model.pbed",
+"texture": "Creality/creality_k1_buildplate_texture.svg"
+},
+"Creality CR-6 Max": {
+"model": "Creality/creality_cr6max_buildplate_model.pbed",
+"texture": "Creality/creality_cr6max_buildplate_texture.svg"
+},
+"Creality CR-6 SE": {
+"model": "Creality/creality_cr6se_buildplate_model.pbed",
+"texture": "Creality/creality_cr6se_buildplate_texture.svg"
+},
+"Creality CR-M4": {
+"model": "Creality/creality_crm4_buildplate_model.pbed",
+"texture": "Creality/creality_crm4_buildplate_texture.svg"
+},
+"Creality CR-M4 SE": {
+"model": "Creality/creality_crm4_buildplate_model.pbed",
+"texture": "Creality/creality_crm4_buildplate_texture.svg"
+},
+"Creality Ender-2 Pro": {
+"model": "Creality/creality_ender2pro_buildplate_model.pbed",
+"texture": "Creality/creality_ender2pro_buildplate_texture.svg"
+},
+"Creality Ender-3": {
+"model": "Creality/creality_ender3v2_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v2_buildplate_texture.svg"
+},
+"Creality Ender-3 Max": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality Ender-3 Max Neo": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality Ender-3 Neo": {
+"model": "Creality/creality_ender3v2neo_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v2neo_buildplate_texture.svg"
+},
+"Creality Ender-3 Pro": {
+"model": "Creality/creality_ender3v2_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v2_buildplate_texture.svg"
+},
+"Creality Ender-3 S1": {
+"model": "Creality/creality_ender3s1_buildplate_model.pbed",
+"texture": "Creality/creality_ender3s1_buildplate_texture.svg"
+},
+"Creality Ender-3 S1 Plus": {
+"model": "Creality/creality_ender3s1plus_buildplate_model.pbed",
+"texture": "Creality/creality_ender3s1plus_buildplate_texture.svg"
+},
+"Creality Ender-3 S1 Pro": {
+"model": "Creality/creality_ender3s1pro_buildplate_model.pbed",
+"texture": "Creality/creality_ender3s1pro_buildplate_texture.svg"
+},
+"Creality Ender-3 S1 Sonic": {
+"model": "Creality/creality_ender3s1_buildplate_model.pbed",
+"texture": "Creality/creality_ender3s1_buildplate_texture.svg"
+},
+"Creality Ender-3 V2": {
+"model": "Creality/creality_ender3v2_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v2_buildplate_texture.svg"
+},
+"Creality Ender-3 V2 Neo": {
+"model": "Creality/creality_ender3v2neo_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v2neo_buildplate_texture.svg"
+},
+"Creality Ender-3 V3": {
+"model": "Creality/creality_ender3v3_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v3_buildplate_texture.svg"
+},
+"Creality Ender-3 V3 KE": {
+"model": "Creality/creality_ender3v3ke_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v3ke_buildplate_texture.svg"
+},
+"Creality Ender-3 V3 Plus": {
+"model": "Creality/creality_ender3v3plus_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v3plus_buildplate_texture.svg"
+},
+"Creality Ender-3 V3 SE": {
+"model": "Creality/creality_ender3v3se_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v3se_buildplate_texture.svg"
+},
+"Creality Ender-3 V4": {
+"model": "Creality/creality_ender3v4_buildplate_model.pbed",
+"texture": "Creality/creality_ender3v4_buildplate_texture.svg"
+},
+"Creality Ender-5": {
+"model": "Creality/creality_ender5_buildplate_model.pbed",
+"texture": "Creality/creality_ender5_buildplate_texture.svg"
+},
+"Creality Ender-5 Max": {
+"model": "Creality/creality_ender5max_buildplate_model.pbed",
+"texture": "Creality/creality_ender5max_buildplate_texture.svg"
+},
+"Creality Ender-5 Plus": {
+"model": "Creality/creality_ender5plus_buildplate_model.pbed",
+"texture": "Creality/creality_ender5plus_buildplate_texture.svg"
+},
+"Creality Ender-5 Pro (2019)": {
+"model": "Creality/creality_ender5pro_buildplate_model.pbed",
+"texture": "Creality/creality_ender5pro_buildplate_texture.svg"
+},
+"Creality Ender-5 S1": {
+"model": "Creality/creality_ender5s1_buildplate_model.pbed",
+"texture": "Creality/creality_ender5s1_buildplate_texture.svg"
+},
+"Creality Ender-5 S1 Sonic": {
+"model": "Creality/creality_ender5s1_buildplate_model.pbed",
+"texture": "Creality/creality_ender5s1_buildplate_texture.svg"
+},
+"Creality Ender-5S": {
+"model": "Creality/creality_ender5s_buildplate_model.pbed",
+"texture": "Creality/creality_ender5s_buildplate_texture.svg"
+},
+"Creality Ender-6": {
+"model": "Creality/creality_ender6_buildplate_model.pbed",
+"texture": "Creality/creality_ender6_buildplate_texture.svg"
+},
+"Creality Hi": {
+"model": "Creality/creality_hi_buildplate_model.pbed",
+"texture": "Creality/creality_hi_buildplate_texture.svg"
+},
+"Creality K1": {
+"model": "Creality/creality_k1_buildplate_model.pbed",
+"texture": "Creality/creality_k1_buildplate_texture.svg"
+},
+"Creality K1 Max": {
+"model": "Creality/creality_k1max_buildplate_model.pbed",
+"texture": "Creality/creality_k1max_buildplate_texture.svg"
+},
+"Creality K1 Max_CFS-C": {
+"model": "Creality/creality_k1max_buildplate_model.pbed",
+"texture": "Creality/creality_k1max_buildplate_texture.svg"
+},
+"Creality K1 SE": {
+"model": "Creality/creality_k1se_buildplate_model.pbed",
+"texture": "Creality/creality_k1se_buildplate_texture.svg"
+},
+"Creality K1 SE_CFS-C": {
+"model": "Creality/creality_k1se_buildplate_model.pbed",
+"texture": "Creality/creality_k1se_buildplate_texture.svg"
+},
+"Creality K1C": {
+"model": "Creality/creality_k1c_buildplate_model.pbed",
+"texture": "Creality/creality_k1c_buildplate_texture.svg"
+},
+"Creality K1C_CFS-C": {
+"model": "Creality/creality_k1c_buildplate_model.pbed",
+"texture": "Creality/creality_k1c_buildplate_texture.svg"
+},
+"Creality K1_CFS-C": {
+"model": "Creality/creality_k1_buildplate_model.pbed",
+"texture": "Creality/creality_k1_buildplate_texture.svg"
+},
+"Creality K2": {
+"model": "Creality/creality_k2_buildplate_model.pbed",
+"texture": "Creality/creality_k2_buildplate_texture.svg"
+},
+"Creality K2 Plus": {
+"model": "Creality/creality_k2plus_buildplate_model.pbed",
+"texture": "Creality/creality_k2plus_buildplate_texture.svg"
+},
+"Creality K2 Pro": {
+"model": "Creality/creality_k2pro_buildplate_model.pbed",
+"texture": "Creality/creality_k2pro_buildplate_texture.svg"
+},
+"Creality K2 SE": {
+"model": "Creality/creality_k1_buildplate_model.pbed",
+"texture": "Creality/creality_k1_buildplate_texture.svg"
+},
+"Creality SPARKX i7": {
+"model": "Creality/creality_SPARKX_buildplate_model.pbed",
+"texture": "Creality/creality_SPARKX_buildplate_texture.svg"
+},
+"Creality Sermoon D3": {
+"model": "Creality/creality_sermoond3_buildplate_model.pbed",
+"texture": "Creality/creality_sermoond3_buildplate_texture.svg"
+},
+"Creality Sermoon D3 Pro": {
+"model": "Creality/creality_sermoond3_buildplate_model.pbed",
+"texture": "Creality/creality_sermoond3_buildplate_texture.svg"
+},
+"Creality Sermoon M300": {
+"model": "Creality/creality_cr10v2_buildplate_model.pbed",
+"texture": "Creality/creality_cr10v2_buildplate_texture.svg"
+},
+"Creality Sermoon V1": {
+"model": "Creality/creality_sermoonv1_buildplate_model.pbed",
+"texture": "Creality/creality_sermoonv1_buildplate_texture.svg"
+},
+"Creality Sermoon V1 Pro": {
+"model": "Creality/creality_sermoonv1_buildplate_model.pbed",
+"texture": "Creality/creality_sermoonv1_buildplate_texture.svg"
+},
+"Cubicon xCeler-I": {
+"texture": "Cubicon/Cubicon xCeler-I_bed_texture.svg"
+},
+"Cubicon xCeler-Mini": {
+"texture": "Cubicon/Cubicon xCeler-I_bed_texture.svg"
+},
+"Cubicon xCeler-Plus": {
+"texture": "Cubicon/Cubicon xCeler-I_bed_texture.svg"
+},
+"D12 230 PRO M2 DIRECT": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 230 PRO M2 MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 230 PRO M2 MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 230 PRO SMARTPAD DIRECT": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 230 PRO SMARTPAD MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 230 PRO SMARTPAD MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-230_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO M2 DIRECT": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO M2 MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO M2 MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO SMARTPAD DIRECT": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO SMARTPAD MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 300 PRO SMARTPAD MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO M2 DIRECT": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO M2 MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO M2 MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO SMARTPAD DIRECT": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO SMARTPAD MONO DUAL": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"D12 500 PRO SMARTPAD MONO DUAL PoopTool": {
+"model": "Wanhao France/Wanhao_D12-500_buildplate_model.pbed",
+"texture": "Wanhao France/D12_texture.png"
+},
+"DeltaMaker 2": {
+"model": "DeltaMaker/deltamaker_2_buildplate_model.pbed",
+"texture": "DeltaMaker/deltamaker_2_buildplate_texture.svg"
+},
+"DeltaMaker 2T": {
+"model": "DeltaMaker/deltamaker_2_buildplate_model.pbed",
+"texture": "DeltaMaker/deltamaker_2_buildplate_texture.svg"
+},
+"DeltaMaker 2XT": {
+"model": "DeltaMaker/deltamaker_2_buildplate_model.pbed",
+"texture": "DeltaMaker/deltamaker_2_buildplate_texture.svg"
+},
+"Dremel 3D20": {
+"model": "Dremel/dremel_3d20_buildplate_model.pbed"
+},
+"Dremel 3D40": {
+"model": "Dremel/dremel_3d40_3d45_buildplate_model.pbed"
+},
+"Dremel 3D45": {
+"model": "Dremel/dremel_3d45.pbed"
+},
+"E3NG v1.2S": {
+"model": "RH3D/E3NG-bed.pbed",
+"texture": "RH3D/E3NG-bed-texture.svg"
+},
+"EXO42": {
+"model": "Volumic/EXO42_bed.pbed"
+},
+"EXO42 IDRE": {
+"model": "Volumic/EXO42_bed.pbed"
+},
+"EXO42 Performance": {
+"model": "Volumic/EXO42_bed.pbed"
+},
+"EXO42 Stage 2": {
+"model": "Volumic/EXO42_bed.pbed"
+},
+"EXO65": {
+"model": "Volumic/EXO65_bed.pbed"
+},
+"EXO65 IDRE": {
+"model": "Volumic/EXO65_bed.pbed"
+},
+"EXO65 Performance": {
+"model": "Volumic/EXO65_bed.pbed"
+},
+"EXO65 Stage 2": {
+"model": "Volumic/EXO65_bed.pbed"
+},
+"FELIX Food Double": {
+"model": "FELIX Printers/felix_food_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_food_series_buildplate_texture.svg"
+},
+"FELIX Food Single": {
+"model": "FELIX Printers/felix_food_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_food_series_buildplate_texture.svg"
+},
+"FELIX Food Switch": {
+"model": "FELIX Printers/felix_food_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_food_series_buildplate_texture.svg"
+},
+"FELIX Pro 3": {
+"model": "FELIX Printers/felix_pro_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_pro_series_buildplate_texture.svg"
+},
+"FELIX Pro L 3.0": {
+"model": "FELIX Printers/felix_pro_l_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_pro_l_series_buildplate_texture.svg"
+},
+"FELIX Pro XL 3.0": {
+"model": "FELIX Printers/felix_pro_xl_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_pro_xl_series_buildplate_texture.svg"
+},
+"FELIX Tec 4": {
+"model": "FELIX Printers/felix_tec_series_buildplate_model.pbed",
+"texture": "FELIX Printers/felix_tec_series_buildplate_texture.svg"
+},
+"FLSun Q5": {
+"model": "FLSun/flsun_q5_buildplate_model.pbed",
+"texture": "FLSun/flsun_q5_buildplate_texture.svg"
+},
+"FLSun QQ-S Pro": {
+"model": "FLSun/flsun_qqspro_buildplate_model.pbed",
+"texture": "FLSun/flsun_qqspro_buildplate_texture.svg"
+},
+"FLSun S1": {
+"model": "FLSun/flsun_s1_buildplate_model.pbed",
+"texture": "FLSun/FLSun_S1_buildplate_texture.svg"
+},
+"FLSun Super Racer (SR)": {
+"model": "FLSun/flsun_SR_buildplate_model.pbed",
+"texture": "FLSun/flsun_SR_buildplate_texture.svg"
+},
+"FLSun T1": {
+"model": "FLSun/flsun_T1_buildplate_model.pbed",
+"texture": "FLSun/FLSun_T1_buildplate_texture.svg"
+},
+"FLSun V400": {
+"model": "FLSun/flsun_v400_buildplate_model.pbed",
+"texture": "FLSun/flsun_v400_buildplate_texture.svg"
+},
+"Flashforge AD5X": {
+"model": "Flashforge/flashforge_adventurer5m_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_ad5x_buildplate_texture.svg"
+},
+"Flashforge Adventurer 3 Series": {
+"model": "Flashforge/flashforge_adventurer3_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_adventurer3_buildplate_texture.svg"
+},
+"Flashforge Adventurer 4 Series": {
+"model": "Flashforge/flashforge_adventurer5m_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_adventurer5mpro_buildplate_texture.svg"
+},
+"Flashforge Adventurer 5M": {
+"model": "Flashforge/flashforge_adventurer5m_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_adventurer5m_buildplate_texture.svg"
+},
+"Flashforge Adventurer 5M Pro": {
+"model": "Flashforge/flashforge_adventurer5m_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_adventurer5m_buildplate_texture.svg"
+},
+"Flashforge Adventurer A5": {
+"model": "Flashforge/flashforge_adventurer5m_series_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_adventurer5m_buildplate_texture.svg"
+},
+"Flashforge Artemis": {
+"model": "Flashforge/flashforge_artemis_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_artemis_buildplate_texture.svg"
+},
+"Flashforge Creator 5": {
+"model": "Flashforge/flashforge_c5_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_c5_buildplate_texture.svg"
+},
+"Flashforge Creator 5 Pro": {
+"model": "Flashforge/flashforge_c5_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_c5_buildplate_texture.svg"
+},
+"Flashforge Guider 2s": {
+"model": "Flashforge/flashforge_g2s_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_g2s_buildplate_texture.svg"
+},
+"Flashforge Guider 3 Ultra": {
+"model": "Flashforge/flashforge_g3u_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_g3u_buildplate_texture.svg"
+},
+"Flashforge Guider4": {
+"model": "Flashforge/flashforge_g4pro_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_g4pro_buildplate_texture.svg"
+},
+"Flashforge Guider4 Pro": {
+"model": "Flashforge/flashforge_g4pro_buildplate_model.pbed",
+"texture": "Flashforge/flashforge_g4pro_buildplate_texture.svg"
+},
+"FlyingBear Ghost 6": {
+"model": "FlyingBear/FlyingBear Ghost 6-bed.pbed",
+"texture": "FlyingBear/FlyingBear Ghost 6-texture.png"
+},
+"FlyingBear Reborn3": {
+"model": "FlyingBear/FlyingBear Reborn3-bed.pbed",
+"texture": "FlyingBear/FlyingBear Reborn3-texture.png"
+},
+"Folgertech FT-5": {
+"model": "Folgertech/Folgertech_FT5_buildplate_model.pbed",
+"texture": "Folgertech/Folgertech_FT5_buildplate_texture.png"
+},
+"Folgertech FT-6": {
+"model": "Folgertech/Folgertech_FT6_buildplate_model.pbed",
+"texture": "Folgertech/Folgertech_FT6_buildplate_texture.png"
+},
+"Folgertech i3": {
+"model": "Folgertech/Folgertech_i3_buildplate_model.pbed",
+"texture": "Folgertech/Folgertech_i3_buildplate_texture.png"
+},
+"Geeetech A10 M": {
+"model": "Geeetech/220x220.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A10 Pro": {
+"model": "Geeetech/220x220.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A10 T": {
+"model": "Geeetech/220x220.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A20": {
+"model": "Geeetech/250x250.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A20 M": {
+"model": "Geeetech/250x250.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A20 T": {
+"model": "Geeetech/250x250.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A30 M": {
+"model": "Geeetech/320x320.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A30 Pro": {
+"model": "Geeetech/320x320.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech A30 T": {
+"model": "Geeetech/320x320.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech M1": {
+"model": "Geeetech/105x105.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Mizar": {
+"model": "Geeetech/220x220.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Mizar M": {
+"model": "Geeetech/255x255.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Mizar Max": {
+"model": "Geeetech/320x320.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Mizar Pro": {
+"model": "Geeetech/220x220.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Mizar S": {
+"model": "Geeetech/255x255.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Geeetech Thunder": {
+"model": "Geeetech/250x250.pbed",
+"texture": "Geeetech/Geeetech_buildplate_texture.svg"
+},
+"Generic Belt Printer": {
+"model": "Custom/Custom_350_bed.pbed",
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Generic Klipper Printer": {
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Generic Marlin Printer": {
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Generic RRF Printer": {
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Generic Repetier Printer": {
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Generic ToolChanger Printer": {
+"model": "Custom/Custom_350_bed.pbed",
+"texture": "Custom/orcaslicer_bed_texture.svg"
+},
+"Ginger G1": {
+"model": "Ginger Additive/Ginger_G1.pbed",
+"texture": "Ginger Additive/Ginger_One_texture.svg"
+},
+"Goofoo GP1": {
+"model": "Goofoo/Goofoo-GP1.pbed",
+"texture": "Goofoo/Goofoo-GP1-texture.svg"
+},
+"Goofoo TurboM": {
+"model": "Goofoo/Goofoo-TurboM.pbed",
+"texture": "Goofoo/Goofoo-TurboM-texture.svg"
+},
+"Goofoo Velo+": {
+"model": "Goofoo/Goofoo-Velo+.pbed",
+"texture": "Goofoo/Goofoo-Velo+-texture.svg"
+},
+"Goofoo Velo+ Tool": {
+"model": "Goofoo/Goofoo-Velo+.pbed",
+"texture": "Goofoo/Goofoo-Velo+-texture.svg"
+},
+"InfiMech TX": {
+"model": "InfiMech/InfiMech TX-bed.pbed",
+"texture": "InfiMech/InfiMech TX-texture.svg"
+},
+"Kingroon KLP1": {
+"model": "Kingroon/klp1_bed.pbed",
+"texture": "Kingroon/Kingroon_buildplate.svg"
+},
+"Kingroon KP3S 3.0": {
+"model": "Kingroon/mini_bed.pbed",
+"texture": "Kingroon/Kingroon_buildplate.svg"
+},
+"Kingroon KP3S PRO S1": {
+"model": "Kingroon/kp3s_bed.pbed",
+"texture": "Kingroon/Kingroon_buildplate.svg"
+},
+"Kingroon KP3S PRO V2": {
+"model": "Kingroon/kp3s_bed.pbed",
+"texture": "Kingroon/Kingroon_buildplate.svg"
+},
+"Kingroon KP3S V1": {
+"model": "Kingroon/mini_bed.pbed",
+"texture": "Kingroon/Kingroon_buildplate.svg"
+},
+"LH Stinger": {
+"model": "LH/LH_Stinger_buildplate_model.pbed",
+"texture": "LH/LH_Stinger_buildplate_texture.svg"
+},
+"LH Stinger MMU": {
+"model": "LH/LH_Stinger_buildplate_model.pbed",
+"texture": "LH/LH_Stinger_MMU_buildplate_texture.svg"
+},
+"LONGER LK10": {
+"model": "LONGER/longer_lk10_buildplate_model.pbed",
+"texture": "LONGER/longer_lk10_buildplate_texture.svg"
+},
+"LONGER LK10 Plus": {
+"model": "LONGER/longer_lk10plus_buildplate_model.pbed",
+"texture": "LONGER/longer_lk10plus_buildplate_texture.svg"
+},
+"Lulzbot Mini 1": {
+"texture": "Lulzbot/lulzbot_logo.svg"
+},
+"Lulzbot Taz 4 or 5": {
+"model": "Lulzbot/taz_4_or_5_build_plate.pbed",
+"texture": "Lulzbot/lulzbot_logo.svg"
+},
+"Lulzbot Taz 6": {
+"model": "Lulzbot/taz_6_build_plate.pbed",
+"texture": "Lulzbot/lulzbot_logo.svg"
+},
+"Lulzbot Taz Pro Dual": {
+"model": "Lulzbot/taz_pro_dual_build_plate.pbed",
+"texture": "Lulzbot/Taz_Pro_Dual_printbed.svg"
+},
+"Lulzbot Taz Pro S": {
+"model": "Lulzbot/taz_pro_dual_build_plate.pbed",
+"texture": "Lulzbot/lulzbot_logo.svg"
+},
+"M1": {
+"model": "Mellow/M1_bed_model.pbed",
+"texture": "Mellow/mellow_bed_texture.svg"
+},
+"M3D Enabler D7500": {
+"texture": "M3D/m3d_enabler_D7500_bed_texture.svg"
+},
+"M3D Enabler D8500": {
+"model": "M3D/m3d_enabler_D8500_bed_model.pbed",
+"texture": "M3D/m3d_enabler_D8500_bed_texture.svg"
+},
+"MM BoneKing": {
+"model": "MagicMaker/310_buildplate_model.pbed",
+"texture": "MagicMaker/MM_buildplate_texture.svg"
+},
+"MM hj SK": {
+"model": "MagicMaker/220210_buildplate_model.pbed",
+"texture": "MagicMaker/MM_buildplate_texture.svg"
+},
+"MM hqs SF": {
+"model": "MagicMaker/220210_buildplate_model.pbed",
+"texture": "MagicMaker/MM_buildplate_texture.svg"
+},
+"MM hqs hj": {
+"model": "MagicMaker/220210_buildplate_model.pbed",
+"texture": "MagicMaker/MM_buildplate_texture.svg"
+},
+"MM slb": {
+"model": "MagicMaker/125_buildplate_model.pbed",
+"texture": "MagicMaker/MM_buildplate_texture.svg"
+},
+"Meltingplot CHX 350": {
+"model": "Meltingplot/chx350-printbed.pbed",
+"texture": "Meltingplot/chx350-texture.svg"
+},
+"Meltingplot MBL 133": {
+"model": "Meltingplot/mbl133-printbed.pbed",
+"texture": "Meltingplot/mbl-133-texture.svg"
+},
+"Meltingplot MBL 136": {
+"model": "Meltingplot/mbl136-printbed.pbed",
+"texture": "Meltingplot/mbl-136-texture.svg"
+},
+"Meltingplot MBL 308": {
+"model": "Meltingplot/mbl308-printbed.pbed",
+"texture": "Meltingplot/mbl-308-texture.svg"
+},
+"Meltingplot MBL 480": {
+"model": "Meltingplot/mbl480-printbed.pbed",
+"texture": "Meltingplot/mbl-480-texture.svg"
+},
+"OpenEYE Peacock V2": {
+"model": "OpenEYE/Plate.pbed"
+},
+"Peopoly Magneto X": {
+"model": "Peopoly/magnetox_model.pbed",
+"texture": "Peopoly/magnetox_model_texture.svg"
+},
+"Phrozen Arco": {
+"model": "Phrozen/Phrozen Arco_buildplate_model.pbed",
+"texture": "Phrozen/Phrozen Arco_buildplate_texture.svg"
+},
+"Prusa CORE One": {
+"model": "Prusa/coreone_bed.pbed",
+"texture": "Prusa/coreone.svg"
+},
+"Prusa CORE One HF": {
+"model": "Prusa/coreone_bed.pbed",
+"texture": "Prusa/coreone.svg"
+},
+"Prusa CORE One INDX 4T": {
+"model": "Prusa/coreone_indx.pbed",
+"texture": "Prusa/coreone_indx.svg"
+},
+"Prusa CORE One INDX 8T": {
+"model": "Prusa/coreone_indx.pbed",
+"texture": "Prusa/coreone_indx.svg"
+},
+"Prusa CORE One L": {
+"model": "Prusa/coreonel_bed.pbed",
+"texture": "Prusa/coreonel.svg"
+},
+"Prusa CORE One L HF": {
+"model": "Prusa/coreonel_bed.pbed",
+"texture": "Prusa/coreonel.svg"
+},
+"Prusa CORE One MMU3": {
+"model": "Prusa/coreone_bed.pbed",
+"texture": "Prusa/coreone.svg"
+},
+"Prusa MINI": {
+"model": "Prusa/mini_bed.pbed",
+"texture": "Prusa/mini.svg"
+},
+"Prusa MINI IS": {
+"model": "Prusa/miniis_bed.pbed",
+"texture": "Prusa/miniis.svg"
+},
+"Prusa MK3.5": {
+"model": "Prusa/mk3.5_bed.pbed",
+"texture": "Prusa/mk3.5.svg"
+},
+"Prusa MK3S": {
+"model": "Prusa/mk3_bed.pbed",
+"texture": "Prusa/mk3.svg"
+},
+"Prusa MK4": {
+"model": "Prusa/mk4_bed.pbed",
+"texture": "Prusa/mk4.svg"
+},
+"Prusa MK4 MMU3": {
+"model": "Prusa/mk4_bed.pbed",
+"texture": "Prusa/mk4.svg"
+},
+"Prusa MK4 MMU3 HF": {
+"model": "Prusa/mk4_bed.pbed",
+"texture": "Prusa/mk4.svg"
+},
+"Prusa MK4S": {
+"model": "Prusa/mk4_bed.pbed",
+"texture": "Prusa/mk4s.svg"
+},
+"Prusa MK4S HF": {
+"model": "Prusa/mk4_bed.pbed",
+"texture": "Prusa/mk4s.svg"
+},
+"Prusa XL": {
+"model": "Prusa/Prusa XL_bed.pbed",
+"texture": "Prusa/Prusa XL.svg"
+},
+"Prusa XL 5T": {
+"model": "Prusa/Prusa XL_bed.pbed",
+"texture": "Prusa/Prusa XL.svg"
+},
+"Qidi Q1 Pro": {
+"model": "Qidi/qidi_Q1Pro_buildplate_model.pbed",
+"texture": "Qidi/qidi_Q1Pro_buildplate_texture.svg"
+},
+"Qidi Q2": {
+"model": "Qidi/qidi_q2_buildplate_model.pbed",
+"texture": "Qidi/qidi_q2_buildplate_texture.svg"
+},
+"Qidi Q2C": {
+"model": "Qidi/qidi_q2c_buildplate_model.pbed",
+"texture": "Qidi/qidi_q2c_buildplate_texture.svg"
+},
+"Qidi X-CF Pro": {
+"model": "Qidi/qidi_xcfpro_buildplate_model.pbed",
+"texture": "Qidi/qidi_xcfpro_buildplate_texture.svg"
+},
+"Qidi X-Max": {
+"model": "Qidi/qidi_xmax_buildplate_model.pbed",
+"texture": "Qidi/qidi_xmax_buildplate_texture.svg"
+},
+"Qidi X-Max 3": {
+"model": "Qidi/qidi_xmax3_buildplate_model.pbed",
+"texture": "Qidi/qidi_xmax3_buildplate_texture.svg"
+},
+"Qidi X-Max 4": {
+"model": "Qidi/qidi_xmax4_buildplate_model.pbed",
+"texture": "Qidi/qidi_xmax4_buildplate_texture.svg"
+},
+"Qidi X-Plus": {
+"model": "Qidi/qidi_xplus_buildplate_model.pbed",
+"texture": "Qidi/qidi_xplus_buildplate_texture.svg"
+},
+"Qidi X-Plus 3": {
+"model": "Qidi/qidi_xplus3_buildplate_model.pbed",
+"texture": "Qidi/qidi_xplus3_buildplate_texture.svg"
+},
+"Qidi X-Plus 4": {
+"model": "Qidi/qidi_xplus4_buildplate_model.pbed",
+"texture": "Qidi/qidi_xplus4_buildplate_texture.svg"
+},
+"Qidi X-Plus 5": {
+"model": "Qidi/qidi_xplus5_buildplate_model.pbed",
+"texture": "Qidi/qidi_xplus5_buildplate_texture.svg"
+},
+"Qidi X-Smart 3": {
+"model": "Qidi/qidi_xsmart3_buildplate_model.pbed",
+"texture": "Qidi/qidi_xsmart3_buildplate_texture.svg"
+},
+"Qidi X-Smart 5": {
+"model": "Qidi/qidi_xsmart5_buildplate_model.pbed",
+"texture": "Qidi/qidi_xsmart5_buildplate_texture.svg"
+},
+"Raise3D Pro3": {
+"model": "Raise3D/raise3d_pro3_buildplate_model.pbed",
+"texture": "Raise3D/raise3d_pro3_buildplate_texture.svg"
+},
+"Raise3D Pro3 Plus": {
+"model": "Raise3D/raise3d_pro3plus_buildplate_model.pbed",
+"texture": "Raise3D/raise3d_pro3plus_buildplate_texture.svg"
+},
+"RatRig V-Cast": {
+"model": "Ratrig/ratrig-vcast-bed.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 3 200": {
+"model": "Ratrig/ratrig-vcore-bed-200.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 3 300": {
+"model": "Ratrig/ratrig-vcore-bed-300.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 3 400": {
+"model": "Ratrig/ratrig-vcore-bed-400.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 3 500": {
+"model": "Ratrig/ratrig-vcore-bed-500.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 300": {
+"model": "Ratrig/ratrig-vcore-bed-300.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 400": {
+"model": "Ratrig/ratrig-vcore-bed-400.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 500": {
+"model": "Ratrig/ratrig-vcore-bed-500.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 HYBRID 300": {
+"model": "Ratrig/ratrig-vcore-bed-300.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 HYBRID 400": {
+"model": "Ratrig/ratrig-vcore-bed-400.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 HYBRID 500": {
+"model": "Ratrig/ratrig-vcore-bed-500.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 IDEX 300": {
+"model": "Ratrig/ratrig-vcore-bed-300.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 IDEX 300 COPY MODE": {
+"model": "Ratrig/ratrig-vcore-bed-300-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_copy_mode.svg"
+},
+"RatRig V-Core 4 IDEX 300 MIRROR MODE": {
+"model": "Ratrig/ratrig-vcore-bed-300-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_mirror_mode.svg"
+},
+"RatRig V-Core 4 IDEX 400": {
+"model": "Ratrig/ratrig-vcore-bed-400.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 IDEX 400 COPY MODE": {
+"model": "Ratrig/ratrig-vcore-bed-400-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_copy_mode.svg"
+},
+"RatRig V-Core 4 IDEX 400 MIRROR MODE": {
+"model": "Ratrig/ratrig-vcore-bed-400-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_mirror_mode.svg"
+},
+"RatRig V-Core 4 IDEX 500": {
+"model": "Ratrig/ratrig-vcore-bed-500.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"RatRig V-Core 4 IDEX 500 COPY MODE": {
+"model": "Ratrig/ratrig-vcore-bed-500-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_copy_mode.svg"
+},
+"RatRig V-Core 4 IDEX 500 MIRROR MODE": {
+"model": "Ratrig/ratrig-vcore-bed-500-clone-mode.pbed",
+"texture": "Ratrig/ratrig_logo_mirror_mode.svg"
+},
+"RatRig V-Minion": {
+"model": "Ratrig/ratrig-vminion-bed.pbed",
+"texture": "Ratrig/ratrig_logo.svg"
+},
+"Rolohaun Delta Flyer Refit": {
+"texture": "RolohaunDesign/bedtexture-rook-green-120.svg"
+},
+"Rook MK1 LDO": {
+"texture": "RolohaunDesign/bedtexture-rook-green-120.svg"
+},
+"SH65": {
+"model": "Volumic/SH65_bed.pbed"
+},
+"SH65 IDRE": {
+"model": "Volumic/SH65_bed.pbed"
+},
+"SH65 Performance": {
+"model": "Volumic/SH65_bed.pbed"
+},
+"SH65 Stage 2": {
+"model": "Volumic/SH65_bed.pbed"
+},
+"SecKit SK-Tank": {
+"model": "SecKit/SK-Tank_Bed.pbed",
+"texture": "SecKit/seckit_logo.svg"
+},
+"Seckit Go3": {
+"model": "SecKit/SK-Go3_Bed.pbed",
+"texture": "SecKit/seckit_logo.svg"
+},
+"SeeMeCNC Artemis 300": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC BOSSdelta 300": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC BOSSdelta 500 0505": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model_500.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC BOSSdelta 500 0510": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model_500.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC BOSSdelta 500 0521": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model_500.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC RostockMAX v3.2": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"SeeMeCNC RostockMAX v4": {
+"model": "SeeMeCNC/SeeMeCNC_Buildplate_Model.pbed",
+"texture": "SeeMeCNC/SeeMeCNC_Buildplate_texture.png"
+},
+"Snapmaker A250": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250_texture.svg"
+},
+"Snapmaker A250 BKit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250_texture.svg"
+},
+"Snapmaker A250 Dual": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250 Dual_texture.svg"
+},
+"Snapmaker A250 Dual BKit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250 Dual_texture.svg"
+},
+"Snapmaker A250 Dual QS+B Kit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250 Dual_texture.svg"
+},
+"Snapmaker A250 Dual QSKit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250 Dual_texture.svg"
+},
+"Snapmaker A250 QS+B Kit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250_texture.svg"
+},
+"Snapmaker A250 QSKit": {
+"model": "Snapmaker/Snapmaker A250_bed.pbed",
+"texture": "Snapmaker/Snapmaker A250_texture.svg"
+},
+"Snapmaker A350": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350_texture.svg"
+},
+"Snapmaker A350 BKit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350_texture.svg"
+},
+"Snapmaker A350 Dual": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350 Dual_texture.svg"
+},
+"Snapmaker A350 Dual BKit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350 Dual_texture.svg"
+},
+"Snapmaker A350 Dual QS+B Kit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350 Dual_texture.svg"
+},
+"Snapmaker A350 Dual QSKit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350 Dual_texture.svg"
+},
+"Snapmaker A350 QS+B Kit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350_texture.svg"
+},
+"Snapmaker A350 QSKit": {
+"model": "Snapmaker/Snapmaker A350_bed.pbed",
+"texture": "Snapmaker/Snapmaker A350_texture.svg"
+},
+"Snapmaker Artisan": {
+"model": "Snapmaker/Snapmaker Artisan_bed.pbed",
+"texture": "Snapmaker/Snapmaker Artisan_texture.svg"
+},
+"Snapmaker J1": {
+"model": "Snapmaker/Snapmaker J1_bed.pbed",
+"texture": "Snapmaker/Snapmaker J1_texture.svg"
+},
+"Snapmaker U1": {
+"model": "Snapmaker/Snapmaker U1_bed.pbed",
+"texture": "Snapmaker/Snapmaker U1_texture.svg"
+},
+"Sovol SV01": {
+"model": "Sovol/sovol_sv01pro_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv01pro_buildplate_texture.svg"
+},
+"Sovol SV01 Pro": {
+"model": "Sovol/sovol_sv01pro_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv01pro_buildplate_texture.svg"
+},
+"Sovol SV02": {
+"model": "Sovol/sovol_sv02_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv02_buildplate_texture.svg"
+},
+"Sovol SV05": {
+"model": "Sovol/sovol_sv05_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv05_buildplate_texture.svg"
+},
+"Sovol SV06": {
+"model": "Sovol/sovol_sv06_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv06_buildplate_texture.svg"
+},
+"Sovol SV06 ACE": {
+"model": "Sovol/sovol_sv06_ace_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv06_ace_buildplate_texture.svg"
+},
+"Sovol SV06 Plus": {
+"model": "Sovol/sovol_sv06plus_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv06plus_buildplate_texture.svg"
+},
+"Sovol SV06 Plus ACE": {
+"model": "Sovol/sovol_sv06plus_ace_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv06plus_ace_buildplate_texture.svg"
+},
+"Sovol SV07": {
+"model": "Sovol/sovol_sv07_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv07_buildplate_texture.svg"
+},
+"Sovol SV07 Plus": {
+"model": "Sovol/sovol_sv07plus_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv07plus_buildplate_texture.svg"
+},
+"Sovol SV08": {
+"model": "Sovol/sovol_sv08_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv08_buildplate_texture.svg"
+},
+"Sovol SV08 MAX": {
+"model": "Sovol/sovol_sv08_max_buildplate_model.pbed",
+"texture": "Sovol/sovol_sv08_max_buildplate_texture.svg"
+},
+"Sovol Zero": {
+"model": "Sovol/sovol_zero_buildplate_model.pbed",
+"texture": "Sovol/sovol_zero_buildplate_texture.svg"
+},
+"The Positron": {
+"model": "Positron3D/ThePositron_bed_model.pbed",
+"texture": "Positron3D/ThePositron_bed_texture.svg"
+},
+"Thinker X400": {
+"model": "Eryone/X400_bed.pbed",
+"texture": "Eryone/Thinker_texture.svg"
+},
+"TiQ2": {
+"model": "iQ/TiQ2.pbed",
+"texture": "iQ/TiQ2_texture.svg"
+},
+"TiQ8": {
+"model": "iQ/TiQ8.pbed",
+"texture": "iQ/TiQ8_texture.svg"
+},
+"Tronxy X5SA 400 Marlin Firmware": {
+"texture": "Tronxy/tronxy_logo.svg"
+},
+"Troodon 2.0 - Klipper": {
+"texture": "Vivedino/OrcaSlicer-Troodon2-Bed-Texture.png"
+},
+"Troodon 2.0 - RRF": {
+"texture": "Vivedino/OrcaSlicer-Troodon2-Bed-Texture.png"
+},
+"TwoTrees SK1": {
+"model": "TwoTrees/TwoTrees SK1_buildplate_model.pbed",
+"texture": "TwoTrees/TwoTrees SK1_buildplate_texture.svg"
+},
+"TwoTrees SP-5 Klipper": {
+"model": "TwoTrees/SP-5_bed.pbed",
+"texture": "TwoTrees/SP-5_texture.svg"
+},
+"UltiMaker 2": {
+"model": "UltiMaker/ultimaker_2_buildplate_model.pbed",
+"texture": "UltiMaker/ultimaker_2_buildplate_texture.svg"
+},
+"UltiMaker 2 extended+": {
+"model": "UltiMaker/ultimaker_2_buildplate_model.pbed",
+"texture": "UltiMaker/ultimaker_2_buildplate_texture.svg"
+},
+"UltiMaker 2+": {
+"model": "UltiMaker/ultimaker_2_buildplate_model.pbed",
+"texture": "UltiMaker/ultimaker_2_buildplate_texture.svg"
+},
+"UltiMaker S5": {
+"model": "UltiMaker/ultimaker_s5_buildplate_model.pbed",
+"texture": "UltiMaker/ultimaker_s5_buildplate_texture.svg"
+},
+"VIRTU E3": {
+"model": "RH3D/VIRTU-bed.pbed",
+"texture": "RH3D/VIRTU-bed-texture.svg"
+},
+"VS20MK2": {
+"model": "Volumic/VS20_bed.pbed"
+},
+"VS30MK2": {
+"model": "Volumic/VS30PRO_bed.pbed"
+},
+"VS30MK3": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30MK3 Stage 2": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30SC": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30SC2": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30SC2 Performance": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30SC2 Stage 2": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"VS30ULTRA": {
+"model": "Volumic/VS30U_bed.pbed"
+},
+"Voron 0.1": {
+"model": "Voron/Voron_120_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron 2.4 250": {
+"model": "Voron/Voron_250_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron 2.4 300": {
+"model": "Voron/Voron_300_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron 2.4 350": {
+"model": "Voron/Voron_350_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron Switchwire 250": {
+"texture": "Voron/voron_switchwire_logo.svg"
+},
+"Voron Trident 250": {
+"model": "Voron/Voron_250_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron Trident 300": {
+"model": "Voron/Voron_300_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voron Trident 350": {
+"model": "Voron/Voron_350_build_plate.pbed",
+"texture": "Voron/voron_logo.svg"
+},
+"Voxelab Aquila X2": {
+"model": "Voxelab/voxelab_aquilax2_buildplate_model.pbed",
+"texture": "Voxelab/voxelab_aquilax2_buildplate_texture.svg"
+},
+"Vzbot 235 AWD": {
+"model": "Vzbot/Vz235SlicerBedModel-cnc.pbed",
+"texture": "Vzbot/VzBot_PS_bed_235.svg"
+},
+"Vzbot 330 AWD": {
+"model": "Vzbot/Vz330SlicerBedModel-cnc.pbed",
+"texture": "Vzbot/VzBot_PS_bed_330.svg"
+},
+"WEMAKE3D PhoenixProV1": {
+"model": "WEMAKE3D/WEMAKE3D PhoenixProV1_buildplate_model.pbed",
+"texture": "WEMAKE3D/WEMAKE3D PhoenixProV1_buildplate_texture.svg"
+},
+"WEMAKE3D TinyBotV1": {
+"model": "WEMAKE3D/WEMAKE3D TinyBotV1_buildplate_model.pbed",
+"texture": "WEMAKE3D/WEMAKE3D TinyBotV1_buildplate_texture.svg"
+},
+"Wanhao D12-300": {
+"model": "Wanhao/Wanhao_D12-300_buildplate_model.pbed",
+"texture": "Wanhao/Wanhao_D12-300_buildplate_texture.svg"
+},
+"WonderMaker ZR": {
+"model": "WonderMaker/wm_buildplate_model.pbed"
+},
+"WonderMaker ZR Ultra": {
+"model": "WonderMaker/wm_buildplate_model.pbed"
+},
+"WonderMaker ZR Ultra S": {
+"model": "WonderMaker/wm_buildplate_model.pbed"
+},
+"Xplorer Dual Gantry": {
+"model": "Vivedino/Xplorer_buildplate_model.pbed",
+"texture": "Vivedino/Xplorer_bed_texture_dualgantry.svg"
+},
+"Xplorer IDEX": {
+"model": "Vivedino/Xplorer_buildplate_model.pbed",
+"texture": "Vivedino/Xplorer_bed_texture_idex.svg"
+},
+"Xplorer IQEX": {
+"model": "Vivedino/Xplorer_buildplate_model.pbed",
+"texture": "Vivedino/Xplorer_bed_texture_iqex.svg"
+},
+"Xplorer Single": {
+"model": "Vivedino/Xplorer_buildplate_model.pbed"
+},
+"Z-Bolt S1000": {
+"model": "Z-Bolt/Z-Bolt_S1000_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S1000 Dual": {
+"model": "Z-Bolt/Z-Bolt_S1000_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S300": {
+"model": "Z-Bolt/Z-Bolt_S300_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S300 Dual": {
+"model": "Z-Bolt/Z-Bolt_S300_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S400": {
+"model": "Z-Bolt/Z-Bolt_S400_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S400 Dual": {
+"model": "Z-Bolt/Z-Bolt_S400_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S600": {
+"model": "Z-Bolt/Z-Bolt_S600_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S600 Dual": {
+"model": "Z-Bolt/Z-Bolt_S600_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"Z-Bolt S800 Dual": {
+"model": "Z-Bolt/Z-Bolt_S800_buildplate_model.pbed",
+"texture": "Z-Bolt/Z-Bolt_buildplate_texture.svg"
+},
+"re3D Gigabot 4": {
+"texture": "re3D/re3D Gigabot 4_buildplate_texture.svg"
+},
+"re3D Gigabot 4 XLT": {
+"texture": "re3D/re3D Gigabot 4 XLT_buildplate_texture.svg"
+},
+"re3D GigabotX 2": {
+"texture": "re3D/re3D GigabotX 2_buildplate_texture.svg"
+},
+"re3D GigabotX 2 XLT": {
+"texture": "re3D/re3D GigabotX 2 XLT_buildplate_texture.svg"
+},
+"re3D Terabot 4": {
+"texture": "re3D/re3D Terabot 4_buildplate_texture.svg"
+},
+"re3D TerabotX 2": {
+"texture": "re3D/re3D TerabotX 2_buildplate_texture.svg"
+}
+},
+"source": "OrcaSlicer resources/profiles",
+"version": 1
+}

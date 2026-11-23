@@ -15,14 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          # the open-source GitHub Actions cache, not the default commercial caching service
+          cache-provider: basic
 
       - name: Slicer core unit tests
         run: ./gradlew :slicer-core:test
@@ -45,7 +48,7 @@ jobs:
         run: ./gradlew :app:assembleRelease :app:bundleRelease
 
       - name: Upload APKs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Phorca-apk
           path: |
@@ -54,26 +57,30 @@ jobs:
           if-no-files-found: error
 
   device-test:
-    # Android 11 plus Android 15: newer versions lay out system bars and dialogs differently
-    # (Android 15 caught the Import bar being pushed off-screen).
+    # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
+    # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { api: 30, target: default }
-          - { api: 35, target: google_apis }
+        # Android 17's SDK packages are named 37.0
+        api: ['30', '35', '36', '37.0']
+        # tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
+        device: [phone, tablet]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          # the open-source GitHub Actions cache, not the default commercial caching service
+          cache-provider: basic
 
       - name: Enable KVM
         run: |
@@ -86,7 +93,10 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          target: ${{ matrix.target }}
+          # Android 11 runs the plain image, the newer versions the Google APIs image; Android 17's is
+          # published only with 16 KB memory pages (its default)
+          target: ${{ matrix.api == '30' && 'default' || (matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis') }}
+          profile: ${{ matrix.device == 'tablet' && 'pixel_tablet' || '' }}
           ram-size: 4096M
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim

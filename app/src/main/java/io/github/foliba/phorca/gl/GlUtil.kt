@@ -102,6 +102,24 @@ void main() {
 }
 """
 
+    /** Textured quad (bed texture). */
+    const val TEX_VS = """#version 300 es
+layout(location = 0) in vec3 a_pos;
+layout(location = 1) in vec2 a_uv;
+uniform mat4 u_vp;
+out vec2 v_uv;
+void main() { v_uv = a_uv; gl_Position = u_vp * vec4(a_pos, 1.0); }
+"""
+    const val TEX_FS = """#version 300 es
+precision mediump float;
+uniform sampler2D u_tex;
+uniform float u_alpha;
+in vec2 v_uv;
+out vec4 o_color;
+// premultiplied alpha (Android bitmaps): blend with ONE, ONE_MINUS_SRC_ALPHA
+void main() { o_color = texture(u_tex, v_uv) * u_alpha; }
+"""
+
     const val FLAT_VS = """#version 300 es
 layout(location = 0) in vec3 a_pos;
 uniform mat4 u_vp;

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.5.1 — landscape, axis indicator
+
+### New
+- **Axis indicator** at the bed origin (front left corner), as in OrcaSlicer: X red, Y green, Z blue.
+  Shows where front, right and up are while you turn the view. In Prepare and Preview.
+- **The printer's own bed**, as in OrcaSlicer: the plate with its shape (rounded corners, tabs) and the
+  manufacturer's markings and logo, for the 404 printer models OrcaSlicer 2.5.2 has graphics for. Built
+  into the app (about 1.7 MB, bed models in a compact format), so it works offline. Printers without
+  graphics and custom printers keep the plain grid.
+- **Tablets in landscape: one bottom bar instead of two.** Prepare / Preview / Device move into the middle of
+  each screen's bar: Prepare keeps its tools on the left and Slice/Re-slice on the right, Preview its file
+  buttons on the left and Print on the right, Device has Add printer on the right. Phones and tablets in
+  portrait keep the navigation bar.
+
+### Fixes
+- In landscape (tablets, phones on their side) the view buttons on the right slid under the object
+  panel. On wide screens they now have a column of their own on the right; on narrow screens they share
+  the height with the top bar and the panels and can't run into them. They show names when there is room,
+  icons only when it's tight, and use two or three columns when even that doesn't fit.
+- GitHub Actions workflows moved to their Node 24 versions (Node 20 deprecation warning).
+- The device tests run on Android 11, 15, 16 and 17, each on a phone and on a Pixel Tablet emulator
+  (landscape and portrait). Espresso 3.7.0 for Android 17 (older versions call a method Android 17 removed).
+
 ## 0.5.0 — Phorca
 
 ### Renamed: OrcaPhone is now **Phorca**

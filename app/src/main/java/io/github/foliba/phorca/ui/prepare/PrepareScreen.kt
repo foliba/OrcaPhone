@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,6 +81,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -155,51 +158,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     val selected = objects.firstOrNull { it.id == selectedId }
 
     Box(Modifier.fillMaxSize()) {
-        Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
-
-        if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp))
-        else Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
-            PresetBar(
-                printer = p.name, printerDirty = printer.dirty,
-                filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
-                process = process.working.name, processDirty = process.dirty,
-                onClick = { sheet = it },
-            )
-            if (beds.size > 1) {
-                BedBar(
-                    count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
-                    chipLabel = { i -> "Bed ${i + 1} · ${beds[i].objects.size}" },
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    var bedMenu by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { bedMenu = true }) { Icon(Icons.Outlined.MoreVert, "Bed options") }
-                        DropdownMenu(expanded = bedMenu, onDismissRequest = { bedMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Add empty bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
-                                onClick = { bedMenu = false; vm.addBed() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete bed ${activeBed + 1}") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
-                                onClick = {
-                                    bedMenu = false
-                                    if (objects.isEmpty()) vm.deleteBed(activeBed) else confirmDeleteBed = activeBed
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Nothing to look at on an empty plate, and the buttons would sit behind the "plate is empty" card.
-        if (objects.isNotEmpty()) {
-            ViewControls(
-                overhang = overhang, onOverhang = { overhang = !overhang },
-                onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
-            )
-        }
+        val bedGfx by vm.bedGraphics.collectAsStateWithLifecycle()
+        Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize(), bed = bedGfx)
 
         if (objects.isEmpty() && busy == null && ac == null) {
             if (beds.size > 1) {
@@ -212,51 +172,110 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             }
         }
 
-        if (ac != null) {
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp)) {
-                AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
-            }
-        } else Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (selected != null) {
-                val inside = selected.isInside(p.bedWidth, p.bedDepth, p.maxHeight)
-                ObjectPanel(
-                    name = selected.name,
-                    instances = objects.count { it.group == selected.group },
-                    volumes = volumeSummary(selected),
-                    size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
-                    outside = !inside,
-                    onRotate = { sheet = PrepareSheet.ROTATE },
-                    onScale = { sheet = PrepareSheet.SCALE },
-                    onLayFlat = { vm.layFlatSelected() },
-                    onCenter = { vm.centerSelected() },
-                    onInstances = { sheet = PrepareSheet.INSTANCES },
-                    onDelete = { vm.deleteSelected() },
-                    bedCount = beds.size, activeBed = activeBed,
-                    onMoveToBed = { vm.moveSelectedToBed(it) },
-                    tooBig = vm.tooBigForBed(selected),
-                    onAutoCut = { vm.startAutoCut() },
+
+        // The overlays in one layout: top bar, the free middle (view buttons) and the bottom panels share the
+        // height, so the view buttons can never run into the panels. Wide screens (tablets, phones on their side)
+        // give the view buttons a column of their own on the right, next to everything else.
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 600.dp
+            // nothing to look at on an empty plate (and the buttons would sit behind the "plate is empty" card)
+            val viewButtons: @Composable (Modifier) -> Unit = { m ->
+                if (objects.isNotEmpty()) ViewControls(
+                    overhang = overhang, onOverhang = { overhang = !overhang },
+                    onView = { y, pch -> vm.setView(y, pch) }, onFrame = { vm.frameContent() },
+                    modifier = m,
                 )
             }
-            ActionBar(
-                hasObjects = objects.isNotEmpty(),
-                slice = slice,
-                onAdd = { sheet = PrepareSheet.ADD },
-                onModels = { sheet = PrepareSheet.MODELS },
-                onArrange = { vm.arrange() },
-                onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
-                onAddBed = { vm.addBed() },
-                onAbout = onAbout,
-                sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
-                onTune = { sheet = PrepareSheet.QUICK },
-                onClear = { vm.clearPlate() },
-                onSlice = { vm.startSlice() },
-                onCancel = { vm.cancelSlice() },
-                dark = dark,
-                onToggleDark = { vm.repos.ui.setThemeMode(if (dark) ThemeMode.LIGHT else ThemeMode.DARK) },
-            )
+            Row(Modifier.fillMaxSize()) {
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                if (ac != null) AutoCutHeader(ac, Modifier.padding(8.dp))
+                else Column(Modifier.fillMaxWidth()) {
+                    PresetBar(
+                        printer = p.name, printerDirty = printer.dirty,
+                        filament = filament.working.name, filamentDirty = filament.dirty, filamentColor = filamentColor,
+                        process = process.working.name, processDirty = process.dirty,
+                        onClick = { sheet = it },
+                    )
+                    if (beds.size > 1) {
+                        BedBar(
+                            count = beds.size, active = activeBed, onSelect = { vm.selectBed(it) },
+                            chipLabel = { i -> "Bed ${i + 1} · ${beds[i].objects.size}" },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        ) {
+                            var bedMenu by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { bedMenu = true }) { Icon(Icons.Outlined.MoreVert, "Bed options") }
+                                DropdownMenu(expanded = bedMenu, onDismissRequest = { bedMenu = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Add empty bed") }, leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                                        onClick = { bedMenu = false; vm.addBed() },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete bed ${activeBed + 1}") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                                        onClick = {
+                                            bedMenu = false
+                                            if (objects.isEmpty()) vm.deleteBed(activeBed) else confirmDeleteBed = activeBed
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                        if (!wide) viewButtons(Modifier.fillMaxHeight().padding(vertical = 8.dp).padding(end = 8.dp))
+                    }
+
+                if (ac != null) {
+                    Box(Modifier.fillMaxWidth().padding(8.dp)) {
+                        AutoCutPanel(ac, onCut = { vm.confirmAutoCut() }, onCancel = { vm.cancelAutoCut() })
+                    }
+                } else Column(
+                    Modifier.fillMaxWidth().padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (selected != null) {
+                        val inside = selected.isInside(p.bedWidth, p.bedDepth, p.maxHeight)
+                        ObjectPanel(
+                            name = selected.name,
+                            instances = objects.count { it.group == selected.group },
+                            volumes = volumeSummary(selected),
+                            size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
+                            outside = !inside,
+                            onRotate = { sheet = PrepareSheet.ROTATE },
+                            onScale = { sheet = PrepareSheet.SCALE },
+                            onLayFlat = { vm.layFlatSelected() },
+                            onCenter = { vm.centerSelected() },
+                            onInstances = { sheet = PrepareSheet.INSTANCES },
+                            onDelete = { vm.deleteSelected() },
+                            bedCount = beds.size, activeBed = activeBed,
+                            onMoveToBed = { vm.moveSelectedToBed(it) },
+                            tooBig = vm.tooBigForBed(selected),
+                            onAutoCut = { vm.startAutoCut() },
+                        )
+                    }
+                    ActionBar(
+                        hasObjects = objects.isNotEmpty(),
+                        slice = slice,
+                        onAdd = { sheet = PrepareSheet.ADD },
+                        onModels = { sheet = PrepareSheet.MODELS },
+                        onArrange = { vm.arrange() },
+                        onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
+                        onAddBed = { vm.addBed() },
+                        onAbout = onAbout,
+                        sliceLabel = if (beds.size > 1) "Slice bed ${activeBed + 1}" else "Slice plate",
+                        onTune = { sheet = PrepareSheet.QUICK },
+                        onClear = { vm.clearPlate() },
+                        onSlice = { vm.startSlice() },
+                        onCancel = { vm.cancelSlice() },
+                        dark = dark,
+                        onToggleDark = { vm.repos.ui.setThemeMode(if (dark) ThemeMode.LIGHT else ThemeMode.DARK) },
+                    )
+                }
+                }
+                if (wide) viewButtons(Modifier.fillMaxHeight().padding(vertical = 8.dp).padding(end = 8.dp))
+            }
         }
 
         busy?.let { msg ->
@@ -453,24 +472,43 @@ private fun ViewControls(
     overhang: Boolean, onOverhang: () -> Unit, onView: (Double, Double) -> Unit, onFrame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        ViewButton(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) }
-        ViewButton(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) }
-        ViewButton(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) }
-        ViewButton(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() }
-        ViewButton(Icons.Outlined.WarningAmber, "Overhang", active = overhang, onClick = onOverhang)
+    val buttons: List<Triple<ImageVector, String, () -> Unit>> = listOf(
+        Triple(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) },
+        Triple(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) },
+        Triple(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) },
+        Triple(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() },
+        Triple(Icons.Outlined.WarningAmber, "Overhang", onOverhang),
+    )
+    // Fit the free height between the top and bottom overlays (landscape phones and tablets have little):
+    // with names if they fit, icons only if not, and in two columns when even that is too tall.
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val labelled = 64.dp
+        val plain = 48.dp
+        val n = buttons.size
+        val showLabels = maxHeight >= labelled * n
+        val perColumn = if (showLabels) n else (maxHeight / plain).toInt().coerceIn(1, n)
+        val columns = buttons.chunked(perColumn)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            for (col in columns) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (showLabels) 4.dp else 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    for ((icon, label, click) in col) {
+                        ViewButton(icon, label, active = label == "Overhang" && overhang, showLabel = showLabels, onClick = click)
+                    }
+                }
+            }
+        }
     }
 }
 
 /** A view button with its name underneath, like the tool buttons in the object panel. */
 @Composable
-private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, onClick: () -> Unit) {
-    Column(Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, showLabel: Boolean = true, onClick: () -> Unit) {
+    Column(if (showLabel) Modifier.width(64.dp) else Modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         SmallFloatingActionButton(
             onClick = onClick,
             containerColor = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
         ) { Icon(icon, label) }
-        Surface(
+        if (showLabel) Surface(
             shape = RoundedCornerShape(6.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
         ) {
@@ -542,7 +580,10 @@ private fun ObjectPanel(
     bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
     tooBig: Boolean = false, onAutoCut: () -> Unit = {},
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f))) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f)),
+        modifier = Modifier.testTag("objectPanel"),
+    ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -636,9 +677,10 @@ private fun ActionBar(
     onAbout: () -> Unit = {},
     dark: Boolean = false, onToggleDark: () -> Unit = {},
 ) {
+    val tabs = io.github.foliba.phorca.ui.components.LocalDockedTabs.current
     Surface(
         shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
-        tonalElevation = 3.dp, shadowElevation = 4.dp,
+        tonalElevation = 3.dp, shadowElevation = 4.dp, modifier = Modifier.testTag("actionBar"),
     ) {
         if (slice is SliceUiState.Running) {
             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -647,71 +689,78 @@ private fun ActionBar(
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(progress = { slice.progress }, modifier = Modifier.fillMaxWidth())
                 }
+                if (tabs != null) { Spacer(Modifier.width(16.dp)); tabs(); Spacer(Modifier.width(16.dp)) }
                 Spacer(Modifier.width(12.dp))
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
             return@Surface
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
-            IconButton(onClick = onModels, enabled = hasObjects) { Icon(Icons.Outlined.Category, "Models") }
-            var arrangeMenu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { if (onArrangeBed != null) arrangeMenu = true else onArrange() },
-                    enabled = hasObjects || onArrangeBed != null,
-                ) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
-                DropdownMenu(expanded = arrangeMenu, onDismissRequest = { arrangeMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Arrange all beds") }, leadingIcon = { Icon(Icons.Outlined.AutoAwesomeMosaic, null) },
-                        onClick = { arrangeMenu = false; onArrange() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Arrange this bed only") }, leadingIcon = { Icon(Icons.Outlined.CropFree, null) },
-                        enabled = hasObjects,
-                        onClick = { arrangeMenu = false; onArrangeBed?.invoke() },
-                    )
+            // left: the tools; middle: the tab switcher on tablets in landscape; right: Slice
+            // equal sides only around the switcher, so it sits in the middle; phones keep the tools together
+            Row(if (tabs != null) Modifier.weight(1f) else Modifier, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
+                IconButton(onClick = onModels, enabled = hasObjects) { Icon(Icons.Outlined.Category, "Models") }
+                var arrangeMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(
+                        onClick = { if (onArrangeBed != null) arrangeMenu = true else onArrange() },
+                        enabled = hasObjects || onArrangeBed != null,
+                    ) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
+                    DropdownMenu(expanded = arrangeMenu, onDismissRequest = { arrangeMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Arrange all beds") }, leadingIcon = { Icon(Icons.Outlined.AutoAwesomeMosaic, null) },
+                            onClick = { arrangeMenu = false; onArrange() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Arrange this bed only") }, leadingIcon = { Icon(Icons.Outlined.CropFree, null) },
+                            enabled = hasObjects,
+                            onClick = { arrangeMenu = false; onArrangeBed?.invoke() },
+                        )
+                    }
+                }
+                IconButton(onClick = onTune) { Icon(Icons.Outlined.Tune, "Quick settings") }
+                var menu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More") }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (dark) "Light mode" else "Dark mode") },
+                            leadingIcon = { Icon(if (dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, null) },
+                            onClick = { menu = false; onToggleDark() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Add empty bed") },
+                            leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                            onClick = { menu = false; onAddBed() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
+                            leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                            onClick = { menu = false; onClear() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About & licences") },
+                            leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                            onClick = { menu = false; onAbout() },
+                        )
+                    }
                 }
             }
-            IconButton(onClick = onTune) { Icon(Icons.Outlined.Tune, "Quick settings") }
-            var menu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More") }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(if (dark) "Light mode" else "Dark mode") },
-                        leadingIcon = { Icon(if (dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, null) },
-                        onClick = { menu = false; onToggleDark() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Add empty bed") },
-                        leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
-                        onClick = { menu = false; onAddBed() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
-                        leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
-                        onClick = { menu = false; onClear() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("About & licences") },
-                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                        onClick = { menu = false; onAbout() },
-                    )
+            tabs?.invoke()
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                val stale = slice is SliceUiState.Ready && slice.stale
+                FilledTonalButton(
+                    onClick = onSlice, enabled = hasObjects,
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.padding(end = 4.dp).height(48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.ViewList, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
                 }
-            }
-            Spacer(Modifier.weight(1f))
-            val stale = slice is SliceUiState.Ready && slice.stale
-            FilledTonalButton(
-                onClick = onSlice, enabled = hasObjects,
-                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                modifier = Modifier.padding(end = 4.dp).height(48.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.ViewList, null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
             }
         }
     }

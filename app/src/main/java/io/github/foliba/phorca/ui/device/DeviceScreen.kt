@@ -157,11 +157,35 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
                 io.github.foliba.phorca.ui.components.AppearanceCard(themeMode) { vm.repos.ui.setThemeMode(it) }
             }
         }
-        ExtendedFloatingActionButton(
-            onClick = { editing = PrinterConnection(vm.newConnectionId(), "Printer ${connections.size + 1}") },
-            icon = { Icon(Icons.Filled.Add, null) }, text = { Text("Add printer") },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        )
+        val addPrinter = { editing = PrinterConnection(vm.newConnectionId(), "Printer ${connections.size + 1}") }
+        val tabs = io.github.foliba.phorca.ui.components.LocalDockedTabs.current
+        if (tabs != null) {
+            // tablets in landscape: one bottom bar, tab switcher in the middle, Add printer on the right
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f), shadowElevation = 4.dp,
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
+            ) {
+                androidx.compose.foundation.layout.Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Spacer(Modifier.weight(1f))
+                    tabs()
+                    androidx.compose.foundation.layout.Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+                        androidx.compose.material3.Button(onClick = addPrinter, modifier = Modifier.padding(end = 4.dp).height(48.dp)) {
+                            Icon(Icons.Filled.Add, null); Spacer(Modifier.width(8.dp)); Text("Add printer")
+                        }
+                    }
+                }
+            }
+        } else {
+            ExtendedFloatingActionButton(
+                onClick = addPrinter,
+                icon = { Icon(Icons.Filled.Add, null) }, text = { Text("Add printer") },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
+        }
     }
 
     editing?.let { c ->
