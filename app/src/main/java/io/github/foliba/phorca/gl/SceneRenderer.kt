@@ -46,6 +46,8 @@ class PreviewScene(
 
 /** Draws the build plate with either model meshes (Prepare) or extrusion paths (Preview). */
 class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
+    private companion object { const val AXIS_VERTS = 36 }
+
     @Volatile var prepare: PrepareScene? = null
     @Volatile var preview: PreviewScene? = null
     @Volatile var dark: Boolean = false
@@ -73,6 +75,8 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     private var bedMajorCount = 0
     private var bedBoxStart = 0
     private var bedBoxCount = 0
+    /** First vertex of the X, Y and Z axis bars at the bed origin (triangles, [AXIS_VERTS] each). */
+    private var axisStart = 0
 
     private var templateVbo = 0
     private var pathVbo = 0
@@ -159,6 +163,22 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         for ((ax, ay) in listOf(0.0 to 0.0, w to 0.0, w to d, 0.0 to d)) { v(ax, ay, 0.0); v(ax, ay, h) }
         v(0.0, 0.0, h); v(w, 0.0, h); v(w, 0.0, h); v(w, d, h); v(w, d, h); v(0.0, d, h); v(0.0, d, h); v(0.0, 0.0, h)
         bedBoxCount = data.size / 3 - bedBoxStart
+        // Axis indicator at the origin (front left corner), as in OrcaSlicer: X red, Y green, Z blue.
+        axisStart = data.size / 3
+        val len = (min(w, d) * 0.15).coerceIn(15.0, 50.0)
+        val t = 1.2
+        fun bar(x0: Double, y0: Double, z0: Double, x1: Double, y1: Double, z1: Double) {
+            val c = arrayOf(
+                doubleArrayOf(x0, y0, z0), doubleArrayOf(x1, y0, z0), doubleArrayOf(x1, y1, z0), doubleArrayOf(x0, y1, z0),
+                doubleArrayOf(x0, y0, z1), doubleArrayOf(x1, y0, z1), doubleArrayOf(x1, y1, z1), doubleArrayOf(x0, y1, z1),
+            )
+            for (f in intArrayOf(0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7)) {
+                v(c[f][0], c[f][1], c[f][2])
+            }
+        }
+        bar(0.0, 0.0, 0.0, len, t, t)          // X
+        bar(0.0, 0.0, 0.0, t, len, t)          // Y
+        bar(0.0, 0.0, 0.0, t, t, len)          // Z
         val arr = data.toFloatArray()
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, bedVbo)
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, arr.size * 4, GlUtil.floatBuffer(arr), GLES30.GL_STATIC_DRAW)
@@ -182,6 +202,13 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES30.glDrawArrays(GLES30.GL_LINES, bedMinorStart, bedMinorCount)
         if (isDark) GLES30.glUniform4f(colorLoc, 0.34f, 0.38f, 0.40f, 1f) else GLES30.glUniform4f(colorLoc, 0.55f, 0.60f, 0.63f, 1f)
         GLES30.glDrawArrays(GLES30.GL_LINES, bedMajorStart, bedMajorCount)
+        // axis indicator: where front, right and up are
+        GLES30.glUniform4f(colorLoc, 0.90f, 0.22f, 0.20f, 1f)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, axisStart, AXIS_VERTS)
+        GLES30.glUniform4f(colorLoc, 0.30f, 0.72f, 0.22f, 1f)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, axisStart + AXIS_VERTS, AXIS_VERTS)
+        GLES30.glUniform4f(colorLoc, 0.20f, 0.42f, 0.95f, 1f)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, axisStart + 2 * AXIS_VERTS, AXIS_VERTS)
         GLES30.glDisableVertexAttribArray(0)
     }
 

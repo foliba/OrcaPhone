@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.5.1 — landscape
+## 0.5.1 — landscape, axis indicator
+
+### New
+- **Axis indicator** at the bed origin (front left corner), as in OrcaSlicer: X red, Y green, Z blue.
+  Shows where front, right and up are while you turn the view. In Prepare and Preview.
 
 ### Fixes
 - In landscape (tablets, phones on their side) the view buttons on the right slid under the object
