@@ -31,15 +31,34 @@ jobs:
       - name: Tests
         run: ./gradlew :slicer-core:test
 
-      - name: Build release APK
-        run: ./gradlew :app:assembleRelease
+      # Upload key for Google Play (and the GitHub APK): repository secrets PHORCA_KEYSTORE_BASE64
+      # (the .jks file, base64), PHORCA_KEYSTORE_PASSWORD, PHORCA_KEY_ALIAS, PHORCA_KEY_PASSWORD.
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PHORCA_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "PHORCA_KEYSTORE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No upload key configured: the release is signed with the debug key and can't go to Google Play."
+          fi
+
+      - name: Build release APK and App Bundle
+        env:
+          PHORCA_KEYSTORE_PASSWORD: ${{ secrets.PHORCA_KEYSTORE_PASSWORD }}
+          PHORCA_KEY_ALIAS: ${{ secrets.PHORCA_KEY_ALIAS }}
+          PHORCA_KEY_PASSWORD: ${{ secrets.PHORCA_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease :app:bundleRelease
 
       - name: Prepare release files
         run: |
           if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; else VERSION="${GITHUB_REF_NAME#v}"; fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p dist
-          cp app/build/outputs/apk/release/*.apk "dist/OrcaPhone-${VERSION}.apk"
+          cp app/build/outputs/apk/release/*.apk "dist/Phorca-${VERSION}.apk"
+          # The App Bundle is what Google Play takes
+          cp app/build/outputs/bundle/release/*.aab "dist/Phorca-${VERSION}.aab"
           # Release notes: the CHANGELOG section of this version
           awk -v v="$VERSION" '$0 ~ "^## "v {p=1; next} /^## / {p=0} p' CHANGELOG.md > dist/notes.md
           cat dist/notes.md
@@ -49,7 +68,9 @@ jobs:
         with:
           tag_name: v${{ env.VERSION }}
           target_commitish: ${{ github.sha }}
-          name: OrcaPhone v${{ env.VERSION }}
+          name: Phorca v${{ env.VERSION }}
           body_path: dist/notes.md
-          files: dist/*.apk
+          files: |
+            dist/*.apk
+            dist/*.aab
           prerelease: ${{ startsWith(env.VERSION, '0.') }}

@@ -6,9 +6,9 @@
 -dontnote kotlinx.serialization.AnnotationsKt
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
 -keepclasseswithmembers class kotlinx.serialization.json.** { kotlinx.serialization.KSerializer serializer(...); }
--keep,includedescriptorclasses class com.orcaphone.**$$serializer { *; }
--keepclassmembers class com.orcaphone.** { *** Companion; }
--keepclasseswithmembers class com.orcaphone.** { kotlinx.serialization.KSerializer serializer(...); }
+-keep,includedescriptorclasses class io.github.foliba.phorca.**$$serializer { *; }
+-keepclassmembers class io.github.foliba.phorca.** { *** Companion; }
+-keepclasseswithmembers class io.github.foliba.phorca.** { kotlinx.serialization.KSerializer serializer(...); }
 
 # JTS uses reflection-free code, but keep it intact for safety
 -keep class org.locationtech.jts.** { *; }
