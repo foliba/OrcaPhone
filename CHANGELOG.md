@@ -13,6 +13,8 @@
   Moving, centring and deleting stay per instance.
 - **Model list** (new button next to Add): every model on the bed once, with a ×N badge for its
   instances. Tap a row to select the model. The object panel also shows the ×N badge.
+- The view buttons on the right of the 3D view have their names underneath (3D view, Top, Front, Fit,
+  Overhang), like the tool buttons in the object panel.
 
 ## 0.4.0 — OrcaSlicer 2.5.2
 

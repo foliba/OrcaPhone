@@ -80,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -448,24 +449,33 @@ private fun ViewControls(
     overhang: Boolean, onOverhang: () -> Unit, onView: (Double, Double) -> Unit, onFrame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SmallFloatingActionButton(onClick = { onView(-120.0, 35.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.ViewInAr, "Iso view")
-        }
-        SmallFloatingActionButton(onClick = { onView(-90.0, 89.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.VerticalAlignTop, "Top view")
-        }
-        SmallFloatingActionButton(onClick = { onView(-90.0, 8.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.CropFree, "Front view")
-        }
-        SmallFloatingActionButton(onClick = onFrame, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.CenterFocusStrong, "Zoom to fit")
-        }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        ViewButton(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) }
+        ViewButton(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) }
+        ViewButton(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) }
+        ViewButton(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() }
+        ViewButton(Icons.Outlined.WarningAmber, "Overhang", active = overhang, onClick = onOverhang)
+    }
+}
+
+/** A view button with its name underneath, like the tool buttons in the object panel. */
+@Composable
+private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, onClick: () -> Unit) {
+    Column(Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         SmallFloatingActionButton(
-            onClick = onOverhang,
-            containerColor = if (overhang) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            onClick = onClick,
+            containerColor = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) { Icon(icon, label) }
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
         ) {
-            Icon(Icons.Outlined.WarningAmber, "Highlight overhangs")
+            Text(
+                label, style = MaterialTheme.typography.labelSmall, maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // the button already carries the name for TalkBack
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp).clearAndSetSemantics {},
+            )
         }
     }
 }
