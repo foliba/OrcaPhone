@@ -1,0 +1,37 @@
+Phorca turns your phone or tablet into a complete slicer for FDM 3D printers. Import a model, tweak the settings with your thumb, slice it right on the device, check every layer and send the G-code to your printer – no computer needed.
+
+PREPARE
+• Import STL, 3MF and OBJ files – from your files, from other apps via "Open with" / "Share", or by pasting a Printables model link
+• 3MF projects from OrcaSlicer, Bambu Studio and MakerWorld: multiple objects, holes (negative volumes), support blockers and enforcers
+• Rotate, scale, lay flat on a face, arrange automatically
+• Instances: place copies of a model or fill the whole bed, spaced so brims and supports don't touch
+• Multiple beds: what doesn't fit goes to the next bed; slice each bed on its own
+• Auto cut: parts too big for your printer are split into pieces with dovetail joints
+• Your printer's own bed shown as in OrcaSlicer, with an X/Y/Z axis indicator
+
+SLICING ON THE DEVICE
+• Walls, top and bottom shells, ironing, seams
+• Infill: grid, rectilinear, triangles, cubic, gyroid, concentric
+• Supports: organic tree, tree and normal, with blockers and enforcers
+• Skirt, brim, vase mode, elephant-foot compensation
+• G-code for Marlin, Klipper and RepRapFirmware with print time and filament estimate
+
+PREVIEW
+• See every layer and every move in 3D, coloured by feature or speed
+• Save or share the G-code
+
+PRINT
+• Send to OctoPrint, Klipper (Moonraker, Mainsail, Fluidd) and PrusaLink on your network
+• Live status, temperatures, pause, resume and cancel
+
+PROFILES
+• Printer, filament and process profiles for more than 400 printer models, from OrcaSlicer's profile library
+• New OrcaSlicer profiles are offered when OrcaSlicer publishes them – no app update needed
+• Optional: sign in with your OrcaSlicer account to sync your own presets with OrcaSlicer on your computer
+
+Phones and tablets, portrait and landscape, light and dark mode.
+
+FREE AND OPEN SOURCE
+No ads, no tracking, no account required. Phorca is free software under the GNU AGPL-3.0; the source code is on GitHub: https://github.com/foliba/Phorca
+
+Phorca is an independent, unofficial project. It is not affiliated with or endorsed by OrcaSlicer, Bambu Lab, Prusa Research or Printables; their names are used only to describe compatibility.

@@ -1,0 +1,4 @@
+• Turning the view below the bed no longer hides the model: the bed becomes see-through
+• Newer OrcaSlicer profiles are offered at start-up (Setup → OrcaSlicer profiles)
+• Your printer's own bed and an X/Y/Z axis indicator
+• Tablets in landscape: one bottom bar

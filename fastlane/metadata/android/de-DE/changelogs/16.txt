@@ -1,0 +1,4 @@
+• Unter das Bett drehen verdeckt das Modell nicht mehr: das Bett wird durchsichtig
+• Neue OrcaSlicer-Profile werden beim Start angeboten (Setup → OrcaSlicer profiles)
+• Das eigene Bett deines Druckers und eine X/Y/Z-Achsenanzeige
+• Tablets im Querformat: eine untere Leiste

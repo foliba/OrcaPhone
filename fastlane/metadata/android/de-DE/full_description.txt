@@ -1,0 +1,37 @@
+Phorca macht dein Handy oder Tablet zu einem vollständigen Slicer für FDM-3D-Drucker. Modell importieren, Einstellungen mit dem Daumen anpassen, direkt auf dem Gerät slicen, jede Schicht prüfen und den G-Code an den Drucker schicken – ganz ohne Computer.
+
+VORBEREITEN
+• STL-, 3MF- und OBJ-Dateien importieren – aus deinen Dateien, aus anderen Apps über „Öffnen mit“ / „Teilen“ oder per Printables-Link
+• 3MF-Projekte aus OrcaSlicer, Bambu Studio und MakerWorld: mehrere Objekte, Löcher (negative Volumen), Support-Blocker und -Erzwinger
+• Drehen, skalieren, auf eine Fläche legen, automatisch anordnen
+• Instanzen: Kopien eines Modells platzieren oder das ganze Bett füllen, mit genug Abstand für Brim und Stützen
+• Mehrere Betten: was nicht passt, kommt aufs nächste Bett; jedes Bett wird einzeln geslict
+• Automatisch schneiden: zu große Teile werden in Stücke mit Schwalbenschwanz-Verbindungen geteilt
+• Das Bett deines Druckers wie in OrcaSlicer, mit X/Y/Z-Achsenanzeige
+
+SLICEN AUF DEM GERÄT
+• Wände, obere und untere Schichten, Glätten (Ironing), Nahtposition
+• Füllung: Gitter, geradlinig, Dreiecke, kubisch, Gyroid, konzentrisch
+• Stützen: organische Bäume, Bäume und normal, mit Blockern und Erzwingern
+• Skirt, Brim, Vasenmodus, Elefantenfuß-Ausgleich
+• G-Code für Marlin, Klipper und RepRapFirmware mit Druckzeit- und Filamentschätzung
+
+VORSCHAU
+• Jede Schicht und jede Bewegung in 3D, eingefärbt nach Typ oder Geschwindigkeit
+• G-Code speichern oder teilen
+
+DRUCKEN
+• An OctoPrint, Klipper (Moonraker, Mainsail, Fluidd) und PrusaLink im Heimnetz senden
+• Live-Status, Temperaturen, Pause, Fortsetzen und Abbrechen
+
+PROFILE
+• Drucker-, Filament- und Prozessprofile für über 400 Druckermodelle aus der Profilbibliothek von OrcaSlicer
+• Neue OrcaSlicer-Profile werden angeboten, sobald OrcaSlicer sie veröffentlicht – ohne App-Update
+• Optional: Mit deinem OrcaSlicer-Konto anmelden und eigene Profile mit OrcaSlicer am Computer abgleichen
+
+Für Handy und Tablet, Hoch- und Querformat, helles und dunkles Design. Die App ist derzeit auf Englisch.
+
+KOSTENLOS UND OPEN SOURCE
+Keine Werbung, kein Tracking, kein Konto nötig. Phorca ist freie Software unter der GNU AGPL-3.0; der Quellcode liegt auf GitHub: https://github.com/foliba/Phorca
+
+Phorca ist ein unabhängiges, inoffizielles Projekt. Es steht in keiner Verbindung zu OrcaSlicer, Bambu Lab, Prusa Research oder Printables und wird von ihnen nicht unterstützt; ihre Namen beschreiben nur die Kompatibilität.
