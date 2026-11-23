@@ -70,6 +70,28 @@ class ViewControlsUiTest {
             r == surfaceRotation
         }
         rule.waitForIdle()
+        settle()
+    }
+
+    /**
+     * Waits until the layout has stopped moving after a rotation: the screen has the new orientation's shape
+     * and the panels and buttons are where they were on the previous look (slow emulators lag a few frames).
+     */
+    private fun settle() {
+        var last: List<DpRect>? = null
+        rule.waitUntil(10_000) {
+            val now = runCatching {
+                val root = rule.onRoot().getUnclippedBoundsInRoot()
+                val landscape = orientation() == Configuration.ORIENTATION_LANDSCAPE
+                if ((root.right > root.bottom) != landscape) return@runCatching null
+                listOf(root, rule.onNodeWithTag("objectPanel").getUnclippedBoundsInRoot()) +
+                    listOf("3D view", "Front", "Overhang").map { rule.onNodeWithContentDescription(it).getUnclippedBoundsInRoot() }
+            }.getOrNull()
+            val same = now != null && now == last
+            last = now
+            if (!same) Thread.sleep(100)
+            same
+        }
     }
 
     @Test
