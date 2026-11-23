@@ -13,6 +13,8 @@ JTS under EDL-1.0). Licence texts are in `app/src/main/assets/licenses/`. To see
 | Component | Copyright | Licence |
 |---|---|---|
 | OrcaSlicer system profiles (printers, filaments, processes), bundled as `slicer-core/src/main/resources/orca/system_presets.json.gz` | SoftFever and the OrcaSlicer contributors; profiles derived from Bambu Studio (Bambu Lab) and PrusaSlicer (Prusa Research) | AGPL-3.0 |
+| OrcaSlicer bed models and bed textures of the printer manufacturers, converted by `tools/gen_bed_assets.py` and bundled in `app/src/main/assets/beds/` | SoftFever and the OrcaSlicer contributors and the printer manufacturers who contributed them to OrcaSlicer | AGPL-3.0 (as part of OrcaSlicer's `resources/profiles`) |
+| AndroidSVG (draws the bed textures) | Paul LeBeau, Cave Rock Software Ltd. | Apache-2.0 |
 | Kotlin standard library, kotlinx.coroutines, kotlinx.serialization | JetBrains s.r.o. and contributors | Apache-2.0 |
 | AndroidX (Core, Activity, Lifecycle, WebKit) and Jetpack Compose (UI, Foundation, Material 3) | The Android Open Source Project | Apache-2.0 |
 | Material Icons | Google LLC | Apache-2.0 |

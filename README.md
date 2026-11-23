@@ -27,6 +27,7 @@ the OrcaSlicer printer profiles (AGPL-3.0).
   joined by dovetails; you pick the side it lies on (flat faces are colour-coded), each piece gets its own bed
 - Tap to select, drag a selected object to move it on the bed
 - Rotate (±15°/±90° per axis), **lay flat** on the largest face, uniform/free scale by % or mm, center, delete, auto-arrange
+- **Printer beds** drawn as in OrcaSlicer (plate model and markings of 404 printer models), with an X/Y/Z axis indicator
 - **Instances**: place a number of copies of a model, or fill the bed, spaced so brims, skirt and supports
   don't touch; changing one instance (rotate, scale, lay flat) changes all of them. The model list shows each
   model once with its instance count

@@ -258,7 +258,7 @@ object OrcaPresetMapper {
         val notes = if (usesUnsupportedScripting(p.startGcode) || usesUnsupportedScripting(p.endGcode))
             "This printer's G-code uses OrcaSlicer scripting ({if …}, expressions) that Phorca cannot evaluate. Review the start/end G-code before printing."
         else ""
-        return p.copy(notes = notes)
+        return p.copy(notes = notes, printerModel = raw["printer_model"].orEmpty())
     }
 
     fun toFilament(raw: Map<String, String>, id: String, name: String): FilamentProfile {

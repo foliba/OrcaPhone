@@ -40,6 +40,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -156,6 +159,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val pending: StateFlow<PendingPlacement?> = _pending.asStateFlow()
     private var remoteJob: Job? = null
 
+    private val _bed = MutableStateFlow<io.github.foliba.phorca.gl.BedGraphics?>(null)
+    /** The selected printer's own bed (model and texture from OrcaSlicer), or null for the plain grid. */
+    val bedGraphics: StateFlow<io.github.foliba.phorca.gl.BedGraphics?> = _bed.asStateFlow()
+
     private val _busy = MutableStateFlow<String?>(null)
     val busy: StateFlow<String?> = _busy.asStateFlow()
 
@@ -172,6 +179,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var cancelToken: CancelToken? = null
 
     init {
+        // The printer's own bed graphics, loaded off the main thread whenever the printer (model or size) changes.
+        viewModelScope.launch {
+            printers.map { it.working }
+                .distinctUntilChanged { a, b ->
+                    a.id == b.id && a.printerModel == b.printerModel && a.bedWidth == b.bedWidth && a.bedDepth == b.bedDepth
+                }
+                .collectLatest { p ->
+                    _bed.value = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val model = io.github.foliba.phorca.gl.BedAssets.modelName(p) { cloud.catalog() }
+                            model?.let { io.github.foliba.phorca.gl.BedAssets.load(getApplication(), it, p.bedWidth, p.bedDepth) }
+                        }.onFailure { android.util.Log.w("Phorca", "Bed graphics", it) }.getOrNull()
+                    }
+                }
+        }
         // A settings change makes every slice result stale; plate edits mark only their bed (see setBeds).
         viewModelScope.launch {
             combine(printers, filaments, processes) { a, b, c -> listOf(a.working, b.working, c.working) }

@@ -45,6 +45,8 @@ fun Viewport3D(
     listener: ViewportListener,
     tick: Int,
     modifier: Modifier = Modifier,
+    /** The printer's own bed graphics, or null for the plain grid. */
+    bed: io.github.foliba.phorca.gl.BedGraphics? = null,
 ) {
     val dark = io.github.foliba.phorca.ui.theme.LocalDarkTheme.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -68,6 +70,7 @@ fun Viewport3D(
             v.listener = listener
             v.editable = editable
             v.renderer.dark = dark
+            v.renderer.bed = bed
             v.renderer.prepare = prepare
             v.renderer.preview = preview
             v.tag = tick

@@ -5,6 +5,10 @@
 ### New
 - **Axis indicator** at the bed origin (front left corner), as in OrcaSlicer: X red, Y green, Z blue.
   Shows where front, right and up are while you turn the view. In Prepare and Preview.
+- **The printer's own bed**, as in OrcaSlicer: the plate with its shape (rounded corners, tabs) and the
+  manufacturer's markings and logo, for the 404 printer models OrcaSlicer 2.5.2 has graphics for. Built
+  into the app (about 1.7 MB, bed models in a compact format), so it works offline. Printers without
+  graphics and custom printers keep the plain grid.
 - **Tablets in landscape: one bottom bar instead of two.** Prepare / Preview / Device move into the middle of
   each screen's bar: Prepare keeps its tools on the left and Slice/Re-slice on the right, Preview its file
   buttons on the left and Print on the right, Device has Add printer on the right. Phones and tablets in

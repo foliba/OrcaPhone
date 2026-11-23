@@ -51,6 +51,8 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     @Volatile var prepare: PrepareScene? = null
     @Volatile var preview: PreviewScene? = null
     @Volatile var dark: Boolean = false
+    /** The printer's own bed (OrcaSlicer bed model and texture), or null for the plain grid. */
+    @Volatile var bed: BedGraphics? = null
 
     var viewWidth = 1
         private set
@@ -58,6 +60,12 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         private set
 
     private var meshProg = 0
+    private var texProg = 0
+    private var bedTexVbo = 0
+    private var bedTexId = 0
+    private var bedModelGpu: MeshGpu? = null
+    /** The [BedGraphics] whose model and texture are on the GPU. */
+    private var uploadedBed: BedGraphics? = null
     private var flatProg = 0
     private var pathProg = 0
 
@@ -94,6 +102,11 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         uploadedGeometry = null
         meshProg = GlUtil.program(Shaders.MESH_VS, Shaders.MESH_FS)
         flatProg = GlUtil.program(Shaders.FLAT_VS, Shaders.FLAT_FS)
+        texProg = GlUtil.program(Shaders.TEX_VS, Shaders.TEX_FS)
+        bedTexVbo = GlUtil.createBuffer()
+        bedTexId = 0
+        bedModelGpu = null
+        uploadedBed = null
         pathProg = GlUtil.program(Shaders.PATH_VS, Shaders.PATH_FS)
         bedVbo = GlUtil.createBuffer()
         templateVbo = GlUtil.createBuffer()
@@ -192,12 +205,103 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 12, 0)
     }
 
+    /** Puts [b]'s plate model and texture on the GPU (once per printer). */
+    private fun ensureBedGraphics(b: BedGraphics?, w: Double, d: Double) {
+        if (b === uploadedBed) return
+        bedModelGpu?.let { GlUtil.deleteBuffer(it.vbo) }
+        bedModelGpu = null
+        if (bedTexId != 0) { GLES30.glDeleteTextures(1, intArrayOf(bedTexId), 0); bedTexId = 0 }
+        uploadedBed = b
+        if (b == null) return
+        b.model?.let { bedModelGpu = upload(it) }
+        b.texture?.takeIf { !it.isRecycled }?.let { bmp ->
+            val ids = IntArray(1)
+            GLES30.glGenTextures(1, ids, 0)
+            bedTexId = ids[0]
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, bedTexId)
+            android.opengl.GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bmp, 0)
+            GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
+        }
+        // the texture covers the printable area; bitmap row 0 is the back of the bed
+        val z = -0.01f
+        val wf = w.toFloat(); val df = d.toFloat()
+        val q = floatArrayOf(
+            0f, 0f, z, 0f, 1f, wf, 0f, z, 1f, 1f, wf, df, z, 1f, 0f,
+            0f, 0f, z, 0f, 1f, wf, df, z, 1f, 0f, 0f, df, z, 0f, 0f,
+        )
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, bedTexVbo)
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, q.size * 4, GlUtil.floatBuffer(q), GLES30.GL_STATIC_DRAW)
+    }
+
+    /** OrcaSlicer's plate model: its origin goes to the centre of the printable area, 0.03 mm down. */
+    private fun drawBedModel(gpu: MeshGpu, w: Double, d: Double, isDark: Boolean) {
+        GLES30.glUseProgram(meshProg)
+        GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(meshProg, "u_vp"), 1, false, vp, 0)
+        val eye = camera.eye()
+        GLES30.glUniform3f(GLES30.glGetUniformLocation(meshProg, "u_eye"), eye[0].toFloat(), eye[1].toFloat(), eye[2].toFloat())
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_overhangCos"), -2f)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_alpha"), 1f)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_vcol"), 0f)
+        val m = FloatArray(16)
+        Matrix.setIdentityM(m, 0)
+        Matrix.translateM(m, 0, (w / 2).toFloat(), (d / 2).toFloat(), -0.03f)
+        GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(meshProg, "u_model"), 1, false, m, 0)
+        GLES30.glUniformMatrix3fv(GLES30.glGetUniformLocation(meshProg, "u_nrm"), 1, false, floatArrayOf(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f), 0)
+        if (isDark) GLES30.glUniform3f(GLES30.glGetUniformLocation(meshProg, "u_color"), 0.20f, 0.21f, 0.22f)
+        else GLES30.glUniform3f(GLES30.glGetUniformLocation(meshProg, "u_color"), 0.24f, 0.25f, 0.26f)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, gpu.vbo)
+        GLES30.glEnableVertexAttribArray(0)
+        GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 24, 0)
+        GLES30.glEnableVertexAttribArray(1)
+        GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, 24, 12)
+        GLES30.glDisableVertexAttribArray(2)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, gpu.vertexCount)
+        GLES30.glDisableVertexAttribArray(1)
+    }
+
+    private fun drawBedTexture() {
+        GLES30.glUseProgram(texProg)
+        GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(texProg, "u_vp"), 1, false, vp, 0)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(texProg, "u_alpha"), 1f)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, bedTexId)
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(texProg, "u_tex"), 0)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, bedTexVbo)
+        GLES30.glEnableVertexAttribArray(0)
+        GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 20, 0)
+        GLES30.glEnableVertexAttribArray(1)
+        GLES30.glVertexAttribPointer(1, 2, GLES30.GL_FLOAT, false, 20, 12)
+        GLES30.glEnable(GLES30.GL_BLEND)
+        GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+        GLES30.glDepthMask(false)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 6)
+        GLES30.glDepthMask(true)
+        GLES30.glDisable(GLES30.GL_BLEND)
+        GLES30.glDisableVertexAttribArray(1)
+        GLES30.glDisableVertexAttribArray(0)
+    }
+
     private fun drawBed(w: Double, d: Double, h: Double, isDark: Boolean) {
         ensureBed(w, d, h)
+        val b = bed?.takeIf { it.key.endsWith("/$w/$d") }
+        ensureBedGraphics(b, w, d)
+        // plate (the printer's own model, else the plain one), then its texture, then grid and axes on top
+        val model = bedModelGpu
+        if (model != null) drawBedModel(model, w, d, isDark)
         bindFlat()
         val colorLoc = GLES30.glGetUniformLocation(flatProg, "u_color")
-        if (isDark) GLES30.glUniform4f(colorLoc, 0.17f, 0.19f, 0.2f, 1f) else GLES30.glUniform4f(colorLoc, 0.80f, 0.83f, 0.85f, 1f)
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, bedQuadVerts)
+        if (model == null) {
+            if (isDark) GLES30.glUniform4f(colorLoc, 0.17f, 0.19f, 0.2f, 1f) else GLES30.glUniform4f(colorLoc, 0.80f, 0.83f, 0.85f, 1f)
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, bedQuadVerts)
+        }
+        if (bedTexId != 0) {
+            drawBedTexture()
+            bindFlat()
+        }
         if (isDark) GLES30.glUniform4f(colorLoc, 0.24f, 0.27f, 0.29f, 1f) else GLES30.glUniform4f(colorLoc, 0.70f, 0.74f, 0.76f, 1f)
         GLES30.glDrawArrays(GLES30.GL_LINES, bedMinorStart, bedMinorCount)
         if (isDark) GLES30.glUniform4f(colorLoc, 0.34f, 0.38f, 0.40f, 1f) else GLES30.glUniform4f(colorLoc, 0.55f, 0.60f, 0.63f, 1f)

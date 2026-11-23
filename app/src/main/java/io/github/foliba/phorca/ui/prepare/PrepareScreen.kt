@@ -166,7 +166,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     val wide = with(density) { widthPx.toDp() } >= 600.dp
     val sideStrip = if (wide) 80.dp else 0.dp
     Box(Modifier.fillMaxSize().onSizeChanged { widthPx = it.width }) {
-        Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
+        val bedGfx by vm.bedGraphics.collectAsStateWithLifecycle()
+        Viewport3D(vm.camera, scene, null, editable = true, listener = listener, tick = tick, modifier = Modifier.fillMaxSize(), bed = bedGfx)
 
         if (ac != null) AutoCutHeader(ac, Modifier.align(Alignment.TopStart).padding(8.dp).onSizeChanged { topPx = it.height })
         else Column(Modifier.align(Alignment.TopStart).fillMaxWidth().onSizeChanged { topPx = it.height }) {

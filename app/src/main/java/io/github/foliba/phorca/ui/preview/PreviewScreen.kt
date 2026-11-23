@@ -194,7 +194,8 @@ fun PreviewScreen(vm: AppViewModel) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        Viewport3D(vm.camera, null, scene, editable = false, listener = listener, tick = tick, modifier = Modifier.fillMaxSize())
+        val bedGfx by vm.bedGraphics.collectAsStateWithLifecycle()
+        Viewport3D(vm.camera, null, scene, editable = false, listener = listener, tick = tick, modifier = Modifier.fillMaxSize(), bed = bedGfx)
 
         // top: summary + stale warning
         Column(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(8.dp)) {
