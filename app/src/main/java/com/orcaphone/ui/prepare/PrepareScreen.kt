@@ -25,7 +25,8 @@ import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AutoAwesomeMosaic
 import androidx.compose.material.icons.outlined.CenterFocusStrong
-import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Layers
@@ -79,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -92,7 +94,7 @@ import com.orcaphone.ui.components.fmt
 import com.orcaphone.ui.settings.EditorTarget
 import kotlin.math.cos
 
-enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY }
+enum class PrepareSheet { PRINTER, FILAMENT, PROCESS, QUICK, ROTATE, SCALE, ADD, LIBRARY, INSTANCES, MODELS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -219,13 +221,14 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
                 val inside = selected.isInside(p.bedWidth, p.bedDepth, p.maxHeight)
                 ObjectPanel(
                     name = selected.name,
+                    instances = objects.count { it.group == selected.group },
                     size = "${fmt(selected.size.x, 1)} × ${fmt(selected.size.y, 1)} × ${fmt(selected.size.z, 1)} mm",
                     outside = !inside,
                     onRotate = { sheet = PrepareSheet.ROTATE },
                     onScale = { sheet = PrepareSheet.SCALE },
                     onLayFlat = { vm.layFlatSelected() },
                     onCenter = { vm.centerSelected() },
-                    onCopy = { vm.duplicateSelected() },
+                    onInstances = { sheet = PrepareSheet.INSTANCES },
                     onDelete = { vm.deleteSelected() },
                     bedCount = beds.size, activeBed = activeBed,
                     onMoveToBed = { vm.moveSelectedToBed(it) },
@@ -237,6 +240,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
                 hasObjects = objects.isNotEmpty(),
                 slice = slice,
                 onAdd = { sheet = PrepareSheet.ADD },
+                onModels = { sheet = PrepareSheet.MODELS },
                 onArrange = { vm.arrange() },
                 onArrangeBed = if (beds.size > 1) ({ vm.arrangeActiveBed() }) else null,
                 onAddBed = { vm.addBed() },
@@ -322,6 +326,27 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             cloud = vm.cloud,
             onAdded = { name -> sheet = null; vm.frameBed(); vm.notify("Added $name with its default process and filament") },
             onError = { vm.notify(it) },
+            onDismiss = { sheet = null },
+        )
+        PrepareSheet.INSTANCES -> if (selected != null) {
+            InstancesSheet(
+                name = selected.name, current = objects.count { it.group == selected.group },
+                max = remember(selected.group, objects, process.working, p) { vm.maxInstances() }, bedNumber = activeBed + 1,
+                onApply = { sheet = null; vm.setInstances(it) },
+                onDismiss = { sheet = null },
+            )
+        }
+        PrepareSheet.MODELS -> ObjectsSheet(
+            bedNumber = activeBed + 1,
+            rows = objects.groupBy { it.group }.map { (g, list) ->
+                val o = list.first()
+                ModelRow(
+                    o.id, g, o.name, "${fmt(o.size.x, 1)} × ${fmt(o.size.y, 1)} × ${fmt(o.size.z, 1)} mm", list.size,
+                    list.any { !it.isInside(p.bedWidth, p.bedDepth, p.maxHeight) },
+                )
+            },
+            selectedGroup = selected?.group,
+            onSelect = { sheet = null; vm.select(it) },
             onDismiss = { sheet = null },
         )
         null -> Unit
@@ -424,24 +449,33 @@ private fun ViewControls(
     overhang: Boolean, onOverhang: () -> Unit, onView: (Double, Double) -> Unit, onFrame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SmallFloatingActionButton(onClick = { onView(-120.0, 35.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.ViewInAr, "Iso view")
-        }
-        SmallFloatingActionButton(onClick = { onView(-90.0, 89.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.VerticalAlignTop, "Top view")
-        }
-        SmallFloatingActionButton(onClick = { onView(-90.0, 8.0) }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.CropFree, "Front view")
-        }
-        SmallFloatingActionButton(onClick = onFrame, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Icon(Icons.Outlined.CenterFocusStrong, "Zoom to fit")
-        }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        ViewButton(Icons.Outlined.ViewInAr, "3D view") { onView(-120.0, 35.0) }
+        ViewButton(Icons.Outlined.VerticalAlignTop, "Top") { onView(-90.0, 89.0) }
+        ViewButton(Icons.Outlined.CropFree, "Front") { onView(-90.0, 8.0) }
+        ViewButton(Icons.Outlined.CenterFocusStrong, "Fit") { onFrame() }
+        ViewButton(Icons.Outlined.WarningAmber, "Overhang", active = overhang, onClick = onOverhang)
+    }
+}
+
+/** A view button with its name underneath, like the tool buttons in the object panel. */
+@Composable
+private fun ViewButton(icon: ImageVector, label: String, active: Boolean = false, onClick: () -> Unit) {
+    Column(Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         SmallFloatingActionButton(
-            onClick = onOverhang,
-            containerColor = if (overhang) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            onClick = onClick,
+            containerColor = if (active) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) { Icon(icon, label) }
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
         ) {
-            Icon(Icons.Outlined.WarningAmber, "Highlight overhangs")
+            Text(
+                label, style = MaterialTheme.typography.labelSmall, maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // the button already carries the name for TalkBack
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp).clearAndSetSemantics {},
+            )
         }
     }
 }
@@ -498,7 +532,8 @@ private fun EmptyPlate(onImport: () -> Unit, onLink: () -> Unit, onSample: (AppV
 private fun ObjectPanel(
     name: String, size: String, outside: Boolean,
     onRotate: () -> Unit, onScale: () -> Unit, onLayFlat: () -> Unit, onCenter: () -> Unit,
-    onCopy: () -> Unit, onDelete: () -> Unit,
+    onInstances: () -> Unit, onDelete: () -> Unit,
+    instances: Int = 1,
     bedCount: Int = 1, activeBed: Int = 0, onMoveToBed: (Int?) -> Unit = {},
     tooBig: Boolean = false, onAutoCut: () -> Unit = {},
 ) {
@@ -506,9 +541,21 @@ private fun ObjectPanel(
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        if (instances > 1) {
+                            Spacer(Modifier.width(6.dp))
+                            androidx.compose.material3.Badge(
+                                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ) { Text("×$instances", modifier = Modifier.padding(horizontal = 2.dp)) }
+                        }
+                    }
                     Text(
-                        if (outside) "$size · outside build volume" else "$size · drag to move",
+                        when {
+                            outside -> "$size · outside build volume"
+                            instances > 1 -> "$size · $instances instances, changes apply to all"
+                            else -> "$size · drag to move"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (outside) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -542,7 +589,7 @@ private fun ObjectPanel(
                 ToolButton(Icons.Outlined.OpenInFull, "Scale", onScale)
                 ToolButton(Icons.Outlined.VerticalAlignBottom, "Lay flat", onLayFlat)
                 ToolButton(Icons.Outlined.CenterFocusStrong, "Center", onCenter)
-                ToolButton(Icons.Outlined.ContentCopy, "Copy", onCopy)
+                ToolButton(Icons.Outlined.GridView, "Instances", onInstances)
                 ToolButton(Icons.Outlined.DeleteOutline, "Delete", onDelete)
             }
         }
@@ -565,6 +612,7 @@ private fun ActionBar(
     hasObjects: Boolean, slice: SliceUiState,
     onAdd: () -> Unit, onArrange: () -> Unit, onTune: () -> Unit, onClear: () -> Unit,
     onSlice: () -> Unit, onCancel: () -> Unit,
+    onModels: () -> Unit = {},
     onArrangeBed: (() -> Unit)? = null, onAddBed: () -> Unit = {}, sliceLabel: String = "Slice plate",
     onAbout: () -> Unit = {},
     dark: Boolean = false, onToggleDark: () -> Unit = {},
@@ -587,6 +635,7 @@ private fun ActionBar(
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
+            IconButton(onClick = onModels, enabled = hasObjects) { Icon(Icons.Outlined.Category, "Models") }
             var arrangeMenu by remember { mutableStateOf(false) }
             Box {
                 IconButton(

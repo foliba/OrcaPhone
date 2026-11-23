@@ -19,6 +19,8 @@ class PlateObject private constructor(
     val y: Double,
     /** Bounds of the mesh after rotation and scale, before translation. */
     private val rsBounds: Bounds3,
+    /** Instances of one model share a group: orientation and scale changes apply to all of them. */
+    val group: Long = id,
 ) {
     val linear: Mat4 get() = rotation * Mat4.scale(scale.x, scale.y, scale.z)
 
@@ -30,17 +32,26 @@ class PlateObject private constructor(
 
     val size: Vec3 get() = Vec3(rsBounds.sizeX, rsBounds.sizeY, rsBounds.sizeZ)
 
-    fun movedTo(nx: Double, ny: Double) = PlateObject(id, name, mesh, rotation, scale, nx, ny, rsBounds)
+    fun movedTo(nx: Double, ny: Double) = PlateObject(id, name, mesh, rotation, scale, nx, ny, rsBounds, group)
 
-    fun withName(n: String) = PlateObject(id, n, mesh, rotation, scale, x, y, rsBounds)
+    fun withName(n: String) = PlateObject(id, n, mesh, rotation, scale, x, y, rsBounds, group)
 
-    fun rotated(r: Mat4): PlateObject = create(id, name, mesh, r * rotation, scale, x, y)
+    fun rotated(r: Mat4): PlateObject = create(id, name, mesh, r * rotation, scale, x, y, group)
 
-    fun withRotation(r: Mat4): PlateObject = create(id, name, mesh, r, scale, x, y)
+    fun withRotation(r: Mat4): PlateObject = create(id, name, mesh, r, scale, x, y, group)
 
-    fun scaled(s: Vec3): PlateObject = create(id, name, mesh, rotation, s, x, y)
+    fun scaled(s: Vec3): PlateObject = create(id, name, mesh, rotation, s, x, y, group)
 
-    fun withId(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds)
+    /** Takes over the orientation and scale of [other] (an instance of the same model), keeping the position. */
+    fun withTransformOf(other: PlateObject) =
+        if (other.mesh === mesh) PlateObject(id, name, mesh, other.rotation, other.scale, x, y, other.rsBounds, group)
+        else create(id, name, mesh, other.rotation, other.scale, x, y, group)
+
+    /** An independent copy: its own group. */
+    fun withId(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, newId)
+
+    /** Another instance of the same model: shares mesh, orientation, scale and group. */
+    fun instance(newId: Long, nx: Double, ny: Double) = PlateObject(newId, name, mesh, rotation, scale, nx, ny, rsBounds, group)
 
     fun layFlat(): PlateObject {
         val n = mesh.bestLayFlatNormal(linear) ?: return this
@@ -60,9 +71,10 @@ class PlateObject private constructor(
             id: Long, name: String, mesh: Mesh,
             rotation: Mat4 = Mat4.identity(), scale: Vec3 = Vec3.ONE,
             x: Double = 0.0, y: Double = 0.0,
+            group: Long = id,
         ): PlateObject {
             val lin = rotation * Mat4.scale(scale.x, scale.y, scale.z)
-            return PlateObject(id, name, mesh, rotation, scale, x, y, mesh.bounds(lin))
+            return PlateObject(id, name, mesh, rotation, scale, x, y, mesh.bounds(lin), group)
         }
     }
 }
@@ -76,6 +88,16 @@ object Arranger {
         val brim = if (p.brimType != com.orcaphone.core.config.BrimType.NONE) p.brimWidth + p.brimObjectGap else 0.0
         val skirt = if (p.skirtLoops > 0) p.skirtDistance + p.skirtLoops * p.initialLayerLineWidth else 0.0
         return brim + skirt
+    }
+
+    /**
+     * Gap between instances of one model: two brims side by side, plus room for supports that reach past
+     * the part's footprint (tree and organic branch feet).
+     */
+    fun instanceSpacingFor(p: com.orcaphone.core.config.ProcessProfile): Double {
+        val support = if (p.enableSupport) 2 * (p.supportObjectXYDistance + 2.0) else 0.0
+        val brim = if (p.brimType != com.orcaphone.core.config.BrimType.NONE) p.brimWidth + p.brimObjectGap else 0.0
+        return maxOf(spacingFor(p), 2 * brim + support + 1.0)
     }
 
     /** Gap between arranged parts: enough for two brims side by side. */
