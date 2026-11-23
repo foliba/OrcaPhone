@@ -142,8 +142,11 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         val bedW = pv?.bedW ?: pr?.bedW ?: 220.0
         val bedD = pv?.bedD ?: pr?.bedD ?: 220.0
         val maxH = pv?.maxH ?: pr?.maxH ?: 250.0
-        drawBed(bedW, bedD, maxH, isDark)
+        // Seen from below the plate, the bed would hide the model: then it is drawn after the model, see-through.
+        val below = camera.eye()[2] < 0.0
+        if (!below) drawBed(bedW, bedD, maxH, isDark)
         if (pv != null) drawPreview(pv) else if (pr != null) drawObjects(pr)
+        if (below) drawBed(bedW, bedD, maxH, isDark, alpha = 0.3f)
         drawVolumeBox(isDark)
     }
 
@@ -238,13 +241,13 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     }
 
     /** OrcaSlicer's plate model: its origin goes to the centre of the printable area, 0.03 mm down. */
-    private fun drawBedModel(gpu: MeshGpu, w: Double, d: Double, isDark: Boolean) {
+    private fun drawBedModel(gpu: MeshGpu, w: Double, d: Double, isDark: Boolean, alpha: Float) {
         GLES30.glUseProgram(meshProg)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(meshProg, "u_vp"), 1, false, vp, 0)
         val eye = camera.eye()
         GLES30.glUniform3f(GLES30.glGetUniformLocation(meshProg, "u_eye"), eye[0].toFloat(), eye[1].toFloat(), eye[2].toFloat())
         GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_overhangCos"), -2f)
-        GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_alpha"), 1f)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_alpha"), alpha)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(meshProg, "u_vcol"), 0f)
         val m = FloatArray(16)
         Matrix.setIdentityM(m, 0)
@@ -263,10 +266,10 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES30.glDisableVertexAttribArray(1)
     }
 
-    private fun drawBedTexture() {
+    private fun drawBedTexture(alpha: Float) {
         GLES30.glUseProgram(texProg)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(texProg, "u_vp"), 1, false, vp, 0)
-        GLES30.glUniform1f(GLES30.glGetUniformLocation(texProg, "u_alpha"), 1f)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(texProg, "u_alpha"), alpha)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, bedTexId)
         GLES30.glUniform1i(GLES30.glGetUniformLocation(texProg, "u_tex"), 0)
@@ -285,26 +288,35 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES30.glDisableVertexAttribArray(0)
     }
 
-    private fun drawBed(w: Double, d: Double, h: Double, isDark: Boolean) {
+    /** The plate, its texture, grid and axes; [alpha] < 1 draws the plate see-through (camera below it). */
+    private fun drawBed(w: Double, d: Double, h: Double, isDark: Boolean, alpha: Float = 1f) {
         ensureBed(w, d, h)
+        val seeThrough = alpha < 1f
+        fun blendOn() {
+            GLES30.glEnable(GLES30.GL_BLEND)
+            GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+            GLES30.glDepthMask(false)
+        }
+        if (seeThrough) blendOn()
         val b = bed?.takeIf { it.key.endsWith("/$w/$d") }
         ensureBedGraphics(b, w, d)
         // plate (the printer's own model, else the plain one), then its texture, then grid and axes on top
         val model = bedModelGpu
-        if (model != null) drawBedModel(model, w, d, isDark)
+        if (model != null) drawBedModel(model, w, d, isDark, alpha)
         bindFlat()
         val colorLoc = GLES30.glGetUniformLocation(flatProg, "u_color")
         if (model == null) {
-            if (isDark) GLES30.glUniform4f(colorLoc, 0.17f, 0.19f, 0.2f, 1f) else GLES30.glUniform4f(colorLoc, 0.80f, 0.83f, 0.85f, 1f)
+            if (isDark) GLES30.glUniform4f(colorLoc, 0.17f, 0.19f, 0.2f, alpha) else GLES30.glUniform4f(colorLoc, 0.80f, 0.83f, 0.85f, alpha)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, bedQuadVerts)
         }
         if (bedTexId != 0) {
-            drawBedTexture()
+            drawBedTexture(alpha)
+            if (seeThrough) blendOn() // the texture pass switches blending off again
             bindFlat()
         }
-        if (isDark) GLES30.glUniform4f(colorLoc, 0.24f, 0.27f, 0.29f, 1f) else GLES30.glUniform4f(colorLoc, 0.70f, 0.74f, 0.76f, 1f)
+        if (isDark) GLES30.glUniform4f(colorLoc, 0.24f, 0.27f, 0.29f, alpha) else GLES30.glUniform4f(colorLoc, 0.70f, 0.74f, 0.76f, alpha)
         GLES30.glDrawArrays(GLES30.GL_LINES, bedMinorStart, bedMinorCount)
-        if (isDark) GLES30.glUniform4f(colorLoc, 0.34f, 0.38f, 0.40f, 1f) else GLES30.glUniform4f(colorLoc, 0.55f, 0.60f, 0.63f, 1f)
+        if (isDark) GLES30.glUniform4f(colorLoc, 0.34f, 0.38f, 0.40f, alpha) else GLES30.glUniform4f(colorLoc, 0.55f, 0.60f, 0.63f, alpha)
         GLES30.glDrawArrays(GLES30.GL_LINES, bedMajorStart, bedMajorCount)
         // axis indicator: where front, right and up are
         GLES30.glUniform4f(colorLoc, 0.90f, 0.22f, 0.20f, 1f)
@@ -313,6 +325,10 @@ class SceneRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, axisStart + AXIS_VERTS, AXIS_VERTS)
         GLES30.glUniform4f(colorLoc, 0.20f, 0.42f, 0.95f, 1f)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, axisStart + 2 * AXIS_VERTS, AXIS_VERTS)
+        if (seeThrough) {
+            GLES30.glDepthMask(true)
+            GLES30.glDisable(GLES30.GL_BLEND)
+        }
         GLES30.glDisableVertexAttribArray(0)
     }
 

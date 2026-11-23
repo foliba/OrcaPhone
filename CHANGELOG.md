@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.3 — see-through bed, Gradle 9
+
+### Fixes
+- Turning the view below the bed hid the model behind the plate. Seen from below, the bed is now drawn
+  see-through, with the model visible through it.
+
+### Build
+- Gradle 9.9 (8.11 was out of support), Android Gradle Plugin 9.4 with its built-in Kotlin support,
+  Kotlin 2.4, licensee 1.14. Nothing changes in the app.
+
 ## 0.5.2 — new OrcaSlicer profiles without an app update
 
 ### New
