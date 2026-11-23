@@ -9,16 +9,29 @@ plugins {
 }
 
 android {
-    namespace = "com.orcaphone"
-    compileSdk = 35
+    namespace = "io.github.foliba.phorca"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.orcaphone"
+        applicationId = "io.github.foliba.phorca"
         minSdk = 26
-        targetSdk = 35
+        // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
+        targetSdk = 36
         versionCode = 13
-        versionName = "0.4.3"
+        versionName = "0.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Release signing: the upload key comes from the environment (GitHub secrets in release.yml).
+    // Without it, release builds are signed with the debug key so CI artifacts still install.
+    val uploadKey = System.getenv("PHORCA_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (uploadKey != null) create("upload") {
+            storeFile = uploadKey
+            storePassword = System.getenv("PHORCA_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("PHORCA_KEY_ALIAS")
+            keyPassword = System.getenv("PHORCA_KEY_PASSWORD") ?: System.getenv("PHORCA_KEYSTORE_PASSWORD")
+        }
     }
 
     buildTypes {
@@ -26,8 +39,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the debug key so CI artifacts install directly; use your own key for distribution.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (uploadKey != null) "upload" else "debug")
         }
     }
 
@@ -86,7 +98,7 @@ licensee {
     allow("MIT")
     allow("BSD-3-Clause")
     allowDependency("org.locationtech.jts", "jts-core", "1.20.0") {
-        because("dual-licensed EPL-2.0 / EDL-1.0 (BSD-3-Clause); OrcaPhone uses it under EDL-1.0")
+        because("dual-licensed EPL-2.0 / EDL-1.0 (BSD-3-Clause); Phorca uses it under EDL-1.0")
     }
 }
 

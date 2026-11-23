@@ -4,8 +4,8 @@ Builds slicer-core/src/main/resources/orca/system_presets.json.gz from OrcaSlice
 resources/profiles directory.
 
 OrcaSlicer system presets inherit from each other ("inherits"). Synced cloud presets only store
-the values that differ from their system parent, so OrcaPhone needs the *resolved* system presets
-to interpret them. This script resolves inheritance and keeps only the settings OrcaPhone maps.
+the values that differ from their system parent, so Phorca needs the *resolved* system presets
+to interpret them. This script resolves inheritance and keeps only the settings Phorca maps.
 
 Usage: tools/gen_orca_catalog.py <OrcaSlicer>/resources/profiles [output.json.gz]
 """

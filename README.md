@@ -1,12 +1,18 @@
-# OrcaPhone
+# Phorca
 
 A native Android slicer for FDM 3D printers, inspired by [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) and designed for touch screens.
 Import a model, tweak a few settings with your thumb, slice it on the phone, inspect every layer, and send it to your printer.
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.4.3**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.5.0**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
+
+Phorca was called **OrcaPhone** up to version 0.4.2. The rename came with a new package name, so
+Android installs Phorca as a separate app: sign in to Orca Cloud again, then uninstall OrcaPhone.
+
+**Unofficial.** Phorca is not affiliated with OrcaSlicer, Bambu Lab, Prusa Research or Printables. It uses
+the OrcaSlicer printer profiles (AGPL-3.0).
 
 ## Features
 
@@ -80,7 +86,7 @@ Releases: push a tag `vX.Y.Z` and `.github/workflows/release.yml` builds the APK
 with the matching CHANGELOG section.
 
 Every push runs the GitHub Actions workflow in `.github/workflows/android.yml`, which runs the tests and uploads the
-debug and release APKs as the `OrcaPhone-apk` artifact.
+debug and release APKs as the `Phorca-apk` artifact.
 
 ## Project layout
 
@@ -93,7 +99,7 @@ app/           Android app (Jetpack Compose + Material 3, OpenGL ES 3)
 ```
 
 ## Limitations
-OrcaPhone is a from-scratch Kotlin slicer, not a port of OrcaSlicer's C++ engine. Not (yet) supported: bridge detection, arachne variable-width walls, multi-material, variable layer height, modifiers/per-object settings,
+Phorca is a from-scratch Kotlin slicer, not a port of OrcaSlicer's C++ engine. Not (yet) supported: bridge detection, arachne variable-width walls, multi-material, variable layer height, modifiers/per-object settings,
 Bambu Lab network printing (proprietary protocol — save the G-code instead), and OrcaSlicer's scripted G-code expressions
 (`{if …}` blocks; simple `[placeholder]` / `{placeholder}` values are supported).
 
@@ -101,12 +107,12 @@ Always check the start G-code for your printer before the first print.
 
 ## Licence
 
-OrcaPhone is free software: you can redistribute it and/or modify it under the terms of the
+Phorca is free software: you can redistribute it and/or modify it under the terms of the
 [GNU Affero General Public License v3.0](LICENSE). It comes with ABSOLUTELY NO WARRANTY.
 
 The app bundles printer, filament and process profiles from OrcaSlicer (AGPL-3.0) and uses
 open-source libraries under Apache-2.0 and EDL-1.0; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 The app shows the same notices under ⋮ → *About & licences*.
 
-OrcaPhone is an independent project and is not affiliated with or endorsed by OrcaSlicer / SoftFever,
+Phorca is an independent project and is not affiliated with or endorsed by OrcaSlicer / SoftFever,
 Prusa Research, Printables or Bambu Lab.

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "OrcaPhone"
+rootProject.name = "Phorca"
 include(":slicer-core", ":app")

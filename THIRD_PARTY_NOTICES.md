@@ -1,6 +1,6 @@
 # Third-party notices
 
-OrcaPhone is licensed under the GNU Affero General Public License v3.0 (see [LICENSE](LICENSE)).
+Phorca is licensed under the GNU Affero General Public License v3.0 (see [LICENSE](LICENSE)).
 It includes or links the following third-party components (summary below).
 
 The complete list of every library in the APK, including indirect dependencies, with versions and
@@ -21,9 +21,9 @@ JTS under EDL-1.0). Licence texts are in `app/src/main/assets/licenses/`. To see
 
 Notes
 
-- OrcaPhone's slicing engine is an independent Kotlin implementation. It follows OrcaSlicer's
+- Phorca's slicing engine is an independent Kotlin implementation. It follows OrcaSlicer's
   settings and concepts (for example organic tree supports) but does not contain OrcaSlicer source code.
-- OrcaPhone is not affiliated with or endorsed by OrcaSlicer / SoftFever, Prusa Research, Printables or
+- Phorca is not affiliated with or endorsed by OrcaSlicer / SoftFever, Prusa Research, Printables or
   Bambu Lab. Names are used only to describe compatibility.
 - Models imported from Printables keep the licence chosen by their authors; the app shows it before
   importing. Respect it when printing or sharing (for example attribution or non-commercial terms).

@@ -42,12 +42,12 @@ jobs:
           ./gradlew :app:assembleDebug 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
 
       - name: Build release APK
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleRelease :app:bundleRelease
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: OrcaPhone-apk
+          name: Phorca-apk
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
