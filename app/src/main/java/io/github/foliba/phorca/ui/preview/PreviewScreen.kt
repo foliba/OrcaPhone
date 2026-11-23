@@ -105,6 +105,7 @@ fun PreviewScreen(vm: AppViewModel) {
     val sliceByBed by vm.sliceByBed.collectAsStateWithLifecycle()
     val ready = slice as? SliceUiState.Ready
     val multi = beds.size > 1
+    val tabs = io.github.foliba.phorca.ui.components.LocalDockedTabs.current
     val bedBar: @Composable (Modifier) -> Unit = { m ->
         if (multi) {
             BedBar(
@@ -152,6 +153,15 @@ fun PreviewScreen(vm: AppViewModel) {
                     }
                 } else {
                     TextButton(onClick = { vm.cancelSlice() }) { Text("Cancel") }
+                }
+            }
+            // tablets in landscape: nothing else at the bottom, but the tab switcher must stay reachable
+            if (tabs != null) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
+                    shadowElevation = 4.dp, modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 6.dp), contentAlignment = Alignment.Center) { tabs() }
                 }
             }
         }
@@ -274,14 +284,21 @@ fun PreviewScreen(vm: AppViewModel) {
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(onClick = { saveLauncher.launch(ready.fileName) }) { Icon(Icons.Outlined.Save, "Save G-code") }
-                        IconButton(onClick = { vm.shareIntent()?.let { context.startActivity(it) } }) { Icon(Icons.Outlined.Share, "Share G-code") }
-                        Text(
-                            ready.fileName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-                        )
-                        Button(onClick = { sendSheet = true }, modifier = Modifier.height(48.dp)) {
-                            Icon(Icons.Outlined.Print, null); Spacer(Modifier.width(8.dp)); Text("Print", fontWeight = FontWeight.SemiBold)
+                        // left: file; middle: tab switcher on tablets in landscape; right: Print
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { saveLauncher.launch(ready.fileName) }) { Icon(Icons.Outlined.Save, "Save G-code") }
+                            IconButton(onClick = { vm.shareIntent()?.let { context.startActivity(it) } }) { Icon(Icons.Outlined.Share, "Share G-code") }
+                            Text(
+                                ready.fileName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                            )
+                        }
+                        tabs?.invoke()
+                        // with the switcher in the middle both sides take equal width
+                        Row(if (tabs != null) Modifier.weight(1f) else Modifier, horizontalArrangement = Arrangement.End) {
+                            Button(onClick = { sendSheet = true }, modifier = Modifier.height(48.dp)) {
+                                Icon(Icons.Outlined.Print, null); Spacer(Modifier.width(8.dp)); Text("Print", fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }

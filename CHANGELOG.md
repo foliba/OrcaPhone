@@ -5,6 +5,10 @@
 ### New
 - **Axis indicator** at the bed origin (front left corner), as in OrcaSlicer: X red, Y green, Z blue.
   Shows where front, right and up are while you turn the view. In Prepare and Preview.
+- **Tablets in landscape: one bottom bar instead of two.** Prepare / Preview / Device move into the middle of
+  each screen's bar: Prepare keeps its tools on the left and Slice/Re-slice on the right, Preview its file
+  buttons on the left and Print on the right, Device has Add printer on the right. Phones and tablets in
+  portrait keep the navigation bar.
 
 ### Fixes
 - In landscape (tablets, phones on their side) the view buttons on the right slid under the object

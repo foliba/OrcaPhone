@@ -675,6 +675,7 @@ private fun ActionBar(
     onAbout: () -> Unit = {},
     dark: Boolean = false, onToggleDark: () -> Unit = {},
 ) {
+    val tabs = io.github.foliba.phorca.ui.components.LocalDockedTabs.current
     Surface(
         shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
         tonalElevation = 3.dp, shadowElevation = 4.dp, modifier = Modifier.testTag("actionBar"),
@@ -686,71 +687,78 @@ private fun ActionBar(
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(progress = { slice.progress }, modifier = Modifier.fillMaxWidth())
                 }
+                if (tabs != null) { Spacer(Modifier.width(16.dp)); tabs(); Spacer(Modifier.width(16.dp)) }
                 Spacer(Modifier.width(12.dp))
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
             return@Surface
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
-            IconButton(onClick = onModels, enabled = hasObjects) { Icon(Icons.Outlined.Category, "Models") }
-            var arrangeMenu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { if (onArrangeBed != null) arrangeMenu = true else onArrange() },
-                    enabled = hasObjects || onArrangeBed != null,
-                ) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
-                DropdownMenu(expanded = arrangeMenu, onDismissRequest = { arrangeMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Arrange all beds") }, leadingIcon = { Icon(Icons.Outlined.AutoAwesomeMosaic, null) },
-                        onClick = { arrangeMenu = false; onArrange() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Arrange this bed only") }, leadingIcon = { Icon(Icons.Outlined.CropFree, null) },
-                        enabled = hasObjects,
-                        onClick = { arrangeMenu = false; onArrangeBed?.invoke() },
-                    )
+            // left: the tools; middle: the tab switcher on tablets in landscape; right: Slice
+            // equal sides only around the switcher, so it sits in the middle; phones keep the tools together
+            Row(if (tabs != null) Modifier.weight(1f) else Modifier, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, "Add model") }
+                IconButton(onClick = onModels, enabled = hasObjects) { Icon(Icons.Outlined.Category, "Models") }
+                var arrangeMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(
+                        onClick = { if (onArrangeBed != null) arrangeMenu = true else onArrange() },
+                        enabled = hasObjects || onArrangeBed != null,
+                    ) { Icon(Icons.Outlined.AutoAwesomeMosaic, "Arrange") }
+                    DropdownMenu(expanded = arrangeMenu, onDismissRequest = { arrangeMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Arrange all beds") }, leadingIcon = { Icon(Icons.Outlined.AutoAwesomeMosaic, null) },
+                            onClick = { arrangeMenu = false; onArrange() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Arrange this bed only") }, leadingIcon = { Icon(Icons.Outlined.CropFree, null) },
+                            enabled = hasObjects,
+                            onClick = { arrangeMenu = false; onArrangeBed?.invoke() },
+                        )
+                    }
+                }
+                IconButton(onClick = onTune) { Icon(Icons.Outlined.Tune, "Quick settings") }
+                var menu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More") }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (dark) "Light mode" else "Dark mode") },
+                            leadingIcon = { Icon(if (dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, null) },
+                            onClick = { menu = false; onToggleDark() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Add empty bed") },
+                            leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
+                            onClick = { menu = false; onAddBed() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
+                            leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
+                            onClick = { menu = false; onClear() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About & licences") },
+                            leadingIcon = { Icon(Icons.Outlined.Info, null) },
+                            onClick = { menu = false; onAbout() },
+                        )
+                    }
                 }
             }
-            IconButton(onClick = onTune) { Icon(Icons.Outlined.Tune, "Quick settings") }
-            var menu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, "More") }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(if (dark) "Light mode" else "Dark mode") },
-                        leadingIcon = { Icon(if (dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, null) },
-                        onClick = { menu = false; onToggleDark() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Add empty bed") },
-                        leadingIcon = { Icon(Icons.Outlined.AddBox, null) },
-                        onClick = { menu = false; onAddBed() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Clear plate") }, enabled = hasObjects || onArrangeBed != null,
-                        leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
-                        onClick = { menu = false; onClear() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("About & licences") },
-                        leadingIcon = { Icon(Icons.Outlined.Info, null) },
-                        onClick = { menu = false; onAbout() },
-                    )
+            tabs?.invoke()
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                val stale = slice is SliceUiState.Ready && slice.stale
+                FilledTonalButton(
+                    onClick = onSlice, enabled = hasObjects,
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.padding(end = 4.dp).height(48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.ViewList, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
                 }
-            }
-            Spacer(Modifier.weight(1f))
-            val stale = slice is SliceUiState.Ready && slice.stale
-            FilledTonalButton(
-                onClick = onSlice, enabled = hasObjects,
-                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                modifier = Modifier.padding(end = 4.dp).height(48.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.ViewList, null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
             }
         }
     }

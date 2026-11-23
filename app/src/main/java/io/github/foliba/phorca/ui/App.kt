@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.foliba.phorca.ui.about.AboutScreen
+import io.github.foliba.phorca.ui.components.LocalDockedTabs
+import io.github.foliba.phorca.ui.components.TabSwitcher
 import io.github.foliba.phorca.ui.cloud.OrcaLoginScreen
 import io.github.foliba.phorca.ui.device.DeviceScreen
 import io.github.foliba.phorca.ui.importer.ModelLinkDialog
@@ -92,10 +94,20 @@ fun PhorcaAppUi(vm: AppViewModel) {
         return
     }
 
+    // Tablets in landscape: the tab switcher goes into each screen's own bottom bar (one bar, not two).
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val docked = config.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE &&
+        config.smallestScreenWidthDp >= 600
+    val stale = (slice as? SliceUiState.Ready)?.stale == true
+    // remembered: slicing progress recomposes this function often, the screens shouldn't follow
+    val dockedTabs: (@Composable () -> Unit)? = remember(docked, tab, stale) {
+        if (docked) ({ TabSwitcher(tab, stale) { vm.setTab(it) } }) else null
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            NavigationBar {
+            if (!docked) NavigationBar {
                 NavigationBarItem(
                     selected = tab == Tab.PREPARE, onClick = { vm.setTab(Tab.PREPARE) },
                     icon = { Icon(Icons.Outlined.ViewInAr, null) }, label = { Text("Prepare") },
@@ -118,10 +130,12 @@ fun PhorcaAppUi(vm: AppViewModel) {
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalDockedTabs provides dockedTabs) {
             when (tab) {
                 Tab.PREPARE -> PrepareScreen(vm, onEdit = { editor = it }, onAbout = { about = true })
                 Tab.PREVIEW -> PreviewScreen(vm)
                 Tab.DEVICE -> DeviceScreen(vm, onSignIn = { login = true })
+            }
             }
         }
     }
