@@ -89,7 +89,8 @@ class StoreScreenshotsTest {
 
         // 4. Setup
         rule.runOnUiThread { vm.setTab(Tab.DEVICE) }
-        shot("4_setup")
+        // long enough for the "Filled bed" message from scene 3 to go away
+        shot("4_setup", settleMs = 7000)
 
         shell("am broadcast -a com.android.systemui.demo -e command exit")
     }
