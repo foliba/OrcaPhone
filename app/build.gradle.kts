@@ -131,3 +131,14 @@ androidComponents {
         variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleLicenseReport::outputDir)
     }
 }
+
+// CI: the build job downloads the device-test runner's own libraries (AGP's unified test platform), so the
+// emulator jobs find them in the Gradle cache instead of all asking Maven Central at once (which answers 429).
+tasks.register("resolveDeviceTestRunner") {
+    notCompatibleWithConfigurationCache("resolves AGP's test platform configurations by name")
+    doLast {
+        val utp = project.configurations.filter { it.name.startsWith("unified-test-platform") && it.isCanBeResolved }
+        utp.forEach { it.resolve() }
+        println("Resolved ${utp.size} test platform configurations: ${utp.joinToString { it.name }}")
+    }
+}

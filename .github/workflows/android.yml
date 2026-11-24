@@ -46,7 +46,7 @@ jobs:
           set -o pipefail
           # also builds the device-test APK, so its libraries land in the shared Gradle cache and the eight
           # emulator jobs do not all download them from Maven Central at once (which answers 429)
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:resolveDeviceTestRunner 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease :app:bundleRelease
