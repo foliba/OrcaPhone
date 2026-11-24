@@ -33,15 +33,26 @@ class PressureAdvanceUiTest {
         rule.activityRule.scenario.onActivity { vm = ViewModelProvider(it)[AppViewModel::class.java] }
         rule.runOnUiThread { vm.addSample(AppViewModel.Sample.CUBE) } // shows the bottom bar with its + button
 
+        // each step is logged: CI prints the "PhorcaTest" lines when a run hangs
+        fun step(s: String) = android.util.Log.i("PhorcaTest", "towerFromTheAddMenu: $s")
+        step("open + sheet")
         rule.onNodeWithContentDescription("Add model").performClick()
+        step("scroll to 3DBenchy")
         rule.onNodeWithText("3DBenchy").performScrollTo()
+        step("open tower dialog")
         rule.onNodeWithText("Pressure advance tower").performScrollTo().performClick()
         // Bowden range, then a short tower so the test slices quickly
+        step("Bowden chip")
         rule.onNodeWithText("Bowden").performClick()
+        step("type start")
         rule.onNodeWithTag("paStart").performTextReplacement("0.1")
+        step("type end")
         rule.onNodeWithTag("paEnd").performTextReplacement("0.2")
+        step("type step")
         rule.onNodeWithTag("paStep").performTextReplacement("0.02")
+        step("add tower")
         rule.onNodeWithText("Add tower").performClick()
+        step("wait for tower")
 
         rule.waitUntil(10_000) { vm.objects.value.any { it.name.startsWith("PA tower") } }
         val tower = vm.objects.value.first { it.name.startsWith("PA tower") }

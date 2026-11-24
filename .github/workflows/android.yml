@@ -110,4 +110,4 @@ jobs:
           # AGP 9 no longer prints failing tests to the log: show them from the result files
           # (result file names contain spaces, so grep searches the folder itself; </dev/null: never wait for input).
           # A hanging test stops the run after 20 minutes; the test runner's log then names the test it was in.
-          script: timeout 1200 ./gradlew :app:connectedDebugAndroidTest || { adb logcat -d -s TestRunner:I </dev/null | tail -30; grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }
+          script: timeout 1200 ./gradlew :app:connectedDebugAndroidTest || { adb logcat -d -s TestRunner:I PhorcaTest:I AndroidRuntime:E </dev/null | tail -60; grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }
