@@ -1,0 +1,3 @@
+• Pressure advance per filament (Klipper, Marlin, RepRapFirmware), also from OrcaSlicer presets
+• New: + → Calibration → Pressure advance tower to find the right value
+• New sample: 3DBenchy, imported from Printables

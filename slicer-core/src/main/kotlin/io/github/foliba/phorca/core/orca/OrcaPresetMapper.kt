@@ -125,6 +125,8 @@ object OrcaPresetMapper {
         Field("slow_down_min_speed", Enc.VALUE, { p, v -> p.copy(slowDownMinSpeed = num(v)) }, { f(it.slowDownMinSpeed) }),
         Field("filament_retraction_length", Enc.VALUE, { p, v -> if (isNil(v)) p.copy(retractionLengthOverride = 0.0) else p.copy(retractionLengthOverride = num(v)) },
             { if (it.retractionLengthOverride > 0) f(it.retractionLengthOverride) else "nil" }),
+        Field("enable_pressure_advance", Enc.VALUE, { p, v -> p.copy(enablePressureAdvance = bool(v)) }, { b(it.enablePressureAdvance) }),
+        Field("pressure_advance", Enc.VALUE, { p, v -> p.copy(pressureAdvance = num(v)) }, { f(it.pressureAdvance) }),
     )
 
     // ------------------------------------------------------------------ process

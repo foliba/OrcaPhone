@@ -118,6 +118,7 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
     var overhang by rememberSaveable { mutableStateOf(false) }
     val dark = io.github.foliba.phorca.ui.theme.LocalDarkTheme.current
     var sheet by remember { mutableStateOf<PrepareSheet?>(null) }
+    var paTowerDialog by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         vm.importUris(uris)
@@ -300,6 +301,9 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
         )
     }
 
+    if (paTowerDialog) {
+        PaTowerDialog(onAdd = { paTowerDialog = false; vm.addPaTower(it) }, onDismiss = { paTowerDialog = false })
+    }
     when (sheet) {
         PrepareSheet.PRINTER -> PresetPickerSheet(
             title = "Printer", state = printer, idOf = { it.id }, nameOf = { it.name }, builtinOf = { it.builtin },
@@ -344,6 +348,8 @@ fun PrepareScreen(vm: AppViewModel, onEdit: (EditorTarget) -> Unit, onAbout: () 
             onLink = { sheet = null; vm.openLinkPrompt() },
             onSample = { sheet = null; vm.addSample(it) },
             onDismiss = { sheet = null },
+            onBenchy = { sheet = null; vm.addBenchy() },
+            onPaTower = { sheet = null; paTowerDialog = true },
         )
         PrepareSheet.LIBRARY -> io.github.foliba.phorca.ui.cloud.PrinterLibrarySheet(
             cloud = vm.cloud,

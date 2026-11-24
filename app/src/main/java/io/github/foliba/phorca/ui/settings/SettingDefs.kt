@@ -237,6 +237,15 @@ object FilamentSettings {
                             "0 uses the printer's retraction length."),
                     ),
                 ),
+                SettingGroup<FilamentProfile>(
+                    "Pressure advance", listOf(
+                        Setting.Toggle("Enable pressure advance", { it.enablePressureAdvance }, { p, v -> p.copy(enablePressureAdvance = v) },
+                            "Sets the value below at the start of each print (Klipper SET_PRESSURE_ADVANCE, Marlin M900, " +
+                                "RepRapFirmware M572). Off: the printer's own setting applies, e.g. printer.cfg."),
+                        Setting.Number("Pressure advance", "", { it.pressureAdvance }, { p, v -> p.copy(pressureAdvance = v) }, 0.0, 2.0, 4,
+                            "Find it with + → Calibration → Pressure advance tower."),
+                    ),
+                ),
             ),
         ),
         SettingPage<FilamentProfile>(

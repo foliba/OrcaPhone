@@ -15,6 +15,7 @@ SLICEN AUF DEM GERÄT
 • Stützen: organische Bäume, Bäume und normal, mit Blockern und Erzwingern
 • Skirt, Brim, Vasenmodus, Elefantenfuß-Ausgleich
 • G-Code für Marlin, Klipper und RepRapFirmware mit Druckzeit- und Filamentschätzung
+• Pressure Advance pro Filament und ein Kalibrierturm für Pressure Advance
 
 VORSCHAU
 • Jede Schicht und jede Bewegung in 3D, eingefärbt nach Typ oder Geschwindigkeit

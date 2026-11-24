@@ -15,6 +15,7 @@ SLICING ON THE DEVICE
 • Supports: organic tree, tree and normal, with blockers and enforcers
 • Skirt, brim, vase mode, elephant-foot compensation
 • G-code for Marlin, Klipper and RepRapFirmware with print time and filament estimate
+• Pressure advance per filament, and a pressure advance calibration tower
 
 PREVIEW
 • See every layer and every move in 3D, coloured by feature or speed

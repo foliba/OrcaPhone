@@ -43,10 +43,19 @@ class Slicer(
     private val filament: FilamentProfile,
     process: ProcessProfile,
     private val cancel: CancelToken = CancelToken(),
+    /** Pressure advance calibration tower: prints walls only, the value rising with the height. */
+    private val paTower: io.github.foliba.phorca.core.gcode.PaTower? = null,
 ) {
-    private val p: ProcessProfile = if (process.spiralMode) process.copy(
-        wallLoops = 1, topShellLayers = 0, sparseInfillDensity = 0.0, enableSupport = false, ironing = false,
-    ) else process
+    private val p: ProcessProfile = when {
+        process.spiralMode -> process.copy(
+            wallLoops = 1, topShellLayers = 0, sparseInfillDensity = 0.0, enableSupport = false, ironing = false,
+        )
+        // walls only (open top, no infill), like OrcaSlicer's tower; corners show the effect
+        paTower != null -> process.copy(
+            topShellLayers = 0, sparseInfillDensity = 0.0, enableSupport = false, ironing = false,
+        )
+        else -> process
+    }
 
     private class Island(
         val polygon: Polygon,
@@ -169,7 +178,7 @@ class Slicer(
 
             // 6. G-code
             progress.update("Writing G-code", 0.75f)
-            val gen = GCodeGenerator(printer, filament, p, cancel, thumbnailMeshes = meshes)
+            val gen = GCodeGenerator(printer, filament, p, cancel, thumbnailMeshes = meshes, paTower = paTower)
             val stats = gen.generate(result, outFile) { f -> progress.update("Writing G-code", 0.75f + 0.25f * f) }
             progress.update("Done", 1f)
             return SliceResult(result, stats, outFile, warnings)

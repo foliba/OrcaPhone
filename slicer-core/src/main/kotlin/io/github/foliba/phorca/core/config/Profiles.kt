@@ -137,6 +137,10 @@ data class FilamentProfile(
     val slowDownMinSpeed: Double = 20.0,
     /** Overrides the printer retraction when > 0. */
     val retractionLengthOverride: Double = 0.0,
+    /** Sets [pressureAdvance] at the start of the print (off: the firmware's own value applies, e.g. printer.cfg). */
+    val enablePressureAdvance: Boolean = false,
+    /** Pressure advance (Klipper) / linear advance K (Marlin) / pressure advance S (RepRapFirmware). */
+    val pressureAdvance: Double = 0.02,
 )
 
 /** Print process settings ("Process" preset in OrcaSlicer), grouped like Orca's tabs. */

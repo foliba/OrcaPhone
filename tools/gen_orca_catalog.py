@@ -30,6 +30,7 @@ FILAMENT_KEYS = [
     "textured_plate_temp_initial_layer", "filament_max_volumetric_speed", "fan_min_speed",
     "fan_max_speed", "close_fan_the_first_x_layers", "fan_cooling_layer_time",
     "slow_down_layer_time", "slow_down_min_speed", "filament_retraction_length", "filament_vendor",
+    "enable_pressure_advance", "pressure_advance",
 ]
 PROCESS_KEYS = [
     "layer_height", "initial_layer_print_height", "line_width", "outer_wall_line_width",
