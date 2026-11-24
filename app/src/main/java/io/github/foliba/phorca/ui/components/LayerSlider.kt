@@ -6,10 +6,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -31,11 +31,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -103,12 +103,16 @@ fun VerticalLayerSlider(
             val y = (thumbRadius + (1f - f) * usablePx - with(density) { 16.dp.toPx() }).roundToInt()
             Surface(
                 shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.inverseSurface,
-                modifier = Modifier.offset { IntOffset(-with(density) { 76.dp.toPx() }.roundToInt(), y) },
+                // as wide as the text needs ("200/200" no longer wraps), right edge at the slider's left edge
+                modifier = Modifier.layout { m, _ ->
+                    val p = m.measure(androidx.compose.ui.unit.Constraints())
+                    layout(0, 0) { p.place(-p.width, y) }
+                },
             ) {
                 Text(
                     label, color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp).width(64.dp),
-                    maxLines = 2,
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp).widthIn(min = 52.dp),
+                    maxLines = 2, softWrap = false,
                 )
             }
         }

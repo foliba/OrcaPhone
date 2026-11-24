@@ -12,8 +12,8 @@ describe what the code does today (Phorca 0.5.3); check them again when features
 | Full description (≤ 4000) | `…/full_description.txt` |
 | App icon 512 × 512 | `…/images/icon.png` |
 | Feature graphic 1024 × 500 | `…/images/featureGraphic.png` |
-| Phone screenshots (2–8) | run *Actions → Store screenshots*, artifact `store-screenshots-phone` |
-| Tablet screenshots (10-inch) | same run, artifact `store-screenshots-tablet` |
+| Phone screenshots (2–8) | `…/images/phoneScreenshots/` (to redo: *Actions → Store screenshots*, artifact `store-screenshots-phone`) |
+| Tablet screenshots (10-inch) | `…/images/tenInchScreenshots/` (same run, artifact `store-screenshots-tablet`) |
 | Release notes ("What's new", ≤ 500) | `…/changelogs/<versionCode>.txt` |
 
 Languages: **English (en-US)** as default, **German (de-DE)** as translation. The app itself is English

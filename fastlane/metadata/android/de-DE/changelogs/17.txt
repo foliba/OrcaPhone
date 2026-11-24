@@ -1,0 +1,4 @@
+• Fit und die Bettansicht schneiden Modelle auf Handys im Hochformat nicht mehr seitlich ab
+• Der Schichtregler in der Vorschau verschwindet auf kleinen Handys nicht mehr hinter der Farblegende
+• Schichtnummer und „Slice plate" brechen nicht mehr in zwei Zeilen um
+• Nur noch ein „Add printer"-Knopf, solange kein Drucker eingerichtet ist

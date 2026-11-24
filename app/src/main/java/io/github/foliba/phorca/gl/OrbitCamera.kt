@@ -1,6 +1,7 @@
 package io.github.foliba.phorca.gl
 
 import android.opengl.Matrix
+import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -18,6 +19,8 @@ class OrbitCamera {
     var targetY = 110.0
     var targetZ = 0.0
     private val fovY = 35.0
+    /** Width / height of the view, from the last frame drawn; framing fits the narrower field of view. */
+    private var aspect = 1.0
 
     /** Bumped on every change so observers can redraw. */
     @Volatile
@@ -59,7 +62,10 @@ class OrbitCamera {
     @Synchronized
     fun frame(cx: Double, cy: Double, cz: Double, radius: Double) {
         targetX = cx; targetY = cy; targetZ = cz
-        distance = (radius / sin(Math.toRadians(fovY / 2)) * 1.05).coerceIn(20.0, 5000.0)
+        // in portrait the horizontal field of view is the narrower one
+        val halfY = Math.toRadians(fovY / 2)
+        val half = if (aspect < 1) atan(tan(halfY) * aspect) else halfY
+        distance = (radius / sin(half) * 1.05).coerceIn(20.0, 5000.0)
         version++
     }
 
@@ -73,6 +79,7 @@ class OrbitCamera {
     /** Writes view and projection matrices. */
     @Synchronized
     fun matrices(aspect: Float, view: FloatArray, proj: FloatArray) {
+        if (aspect > 0f) this.aspect = aspect.toDouble()
         val e = eye()
         val upZ = if (cos(pitch) >= 0) 1f else -1f
         Matrix.setLookAtM(

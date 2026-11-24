@@ -189,7 +189,8 @@ fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
                     }
                 }
             }
-        } else {
+        } else if (connections.isNotEmpty()) {
+            // with no printers, the empty card above has its own Add printer button
             ExtendedFloatingActionButton(
                 onClick = addPrinter,
                 icon = { Icon(Icons.Filled.Add, null) }, text = { Text("Add printer") },

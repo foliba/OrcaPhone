@@ -1,0 +1,4 @@
+• Fit and the bed view no longer cut off models at the sides on phones in portrait
+• The layer slider in Preview no longer hides behind the colour legend on short phones
+• Layer number and "Slice plate" no longer wrap onto two lines
+• Only one "Add printer" button when no printer is set up

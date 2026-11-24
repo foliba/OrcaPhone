@@ -61,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -197,8 +198,16 @@ fun PreviewScreen(vm: AppViewModel) {
         val bedGfx by vm.bedGraphics.collectAsStateWithLifecycle()
         Viewport3D(vm.camera, null, scene, editable = false, listener = listener, tick = tick, modifier = Modifier.fillMaxSize(), bed = bedGfx)
 
+        // heights of the top and bottom panels, so the layer slider fits between them on short screens
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        var topPx by remember { mutableIntStateOf(0) }
+        var bottomPx by remember { mutableIntStateOf(0) }
+
         // top: summary + stale warning
-        Column(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(8.dp)) {
+        Column(
+            Modifier.align(Alignment.TopStart).fillMaxWidth().padding(8.dp)
+                .onSizeChanged { topPx = it.height },
+        ) {
             if (multi) {
                 bedBar(Modifier)
                 Spacer(Modifier.height(6.dp))
@@ -236,12 +245,14 @@ fun PreviewScreen(vm: AppViewModel) {
             value = layer, max = layerCount - 1,
             label = "${layer + 1}/$layerCount\n${fmt(geo.layerZ[layer.coerceIn(0, layerCount - 1)], 2)} mm",
             onChange = { layer = it; moves = -1 },
-            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(0.62f).padding(end = 4.dp),
+            modifier = Modifier.align(Alignment.TopEnd)
+                .padding(top = with(density) { topPx.toDp() } + 8.dp, bottom = with(density) { bottomPx.toDp() } + 8.dp, end = 4.dp)
+                .fillMaxHeight(),
         )
 
         // bottom panel
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp),
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp).onSizeChanged { bottomPx = it.height },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
