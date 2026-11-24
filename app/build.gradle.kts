@@ -16,8 +16,8 @@ android {
         minSdk = 26
         // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
         targetSdk = 36
-        versionCode = 16
-        versionName = "0.5.3"
+        versionCode = 17
+        versionName = "0.5.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
