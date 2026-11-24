@@ -26,6 +26,8 @@ jobs:
         with:
           # the open-source GitHub Actions cache, not the default commercial caching service
           cache-provider: basic
+          # also on branches: the emulator jobs below start from this cache instead of each downloading everything
+          cache-read-only: false
 
       - name: Slicer core unit tests
         run: ./gradlew :slicer-core:test
@@ -57,6 +59,8 @@ jobs:
           if-no-files-found: error
 
   device-test:
+    # after the build job, so the 8 emulators reuse its downloads (in parallel they got throttled by the servers)
+    needs: build
     # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
     # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
