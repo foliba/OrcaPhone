@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.assertTextContains
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.foliba.phorca.ui.AppViewModel
@@ -33,31 +33,18 @@ class PressureAdvanceUiTest {
         rule.activityRule.scenario.onActivity { vm = ViewModelProvider(it)[AppViewModel::class.java] }
         rule.runOnUiThread { vm.addSample(AppViewModel.Sample.CUBE) } // shows the bottom bar with its + button
 
-        // each step is logged: CI prints the "PhorcaTest" lines when a run hangs
-        fun step(s: String) = android.util.Log.i("PhorcaTest", "towerFromTheAddMenu: $s")
-        step("open + sheet")
         rule.onNodeWithContentDescription("Add model").performClick()
-        step("scroll to 3DBenchy")
         rule.onNodeWithText("3DBenchy").performScrollTo()
-        step("open tower dialog")
         rule.onNodeWithText("Pressure advance tower").performScrollTo().performClick()
-        // Bowden range, then a short tower so the test slices quickly
-        step("Bowden chip")
+        // the Bowden preset (no typing: replacing text in a dialog's field hangs the test tool on Android 11)
         rule.onNodeWithText("Bowden").performClick()
-        step("type start")
-        rule.onNodeWithTag("paStart").performTextReplacement("0.1")
-        step("type end")
-        rule.onNodeWithTag("paEnd").performTextReplacement("0.2")
-        step("type step")
-        rule.onNodeWithTag("paStep").performTextReplacement("0.02")
-        step("add tower")
+        rule.onNodeWithTag("paEnd").assertTextContains("1")
         rule.onNodeWithText("Add tower").performClick()
-        step("wait for tower")
 
         rule.waitUntil(10_000) { vm.objects.value.any { it.name.startsWith("PA tower") } }
         val tower = vm.objects.value.first { it.name.startsWith("PA tower") }
-        assertEquals("PA tower 0.1–0.2 (+0.02/mm)", tower.name)
-        assertEquals(5.0, tower.size.z, 1e-6) // (0.2 - 0.1) / 0.02 = 5 mm
+        assertEquals("PA tower 0–1 (+0.02/mm)", tower.name)
+        assertEquals(50.0, tower.size.z, 1e-6) // (1.0 - 0) / 0.02 = 50 mm
 
         rule.runOnUiThread { vm.clearPlate() }
         rule.waitForIdle()
