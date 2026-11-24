@@ -5,7 +5,7 @@ Import a model, tweak a few settings with your thumb, slice it on the phone, ins
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (current: **0.5.2**, preview) and install it
+Get the latest APK from the [Releases](../../releases) page (current: **0.5.3**, preview) and install it
 on Android 8.0 or newer (allow installing from unknown sources). See [CHANGELOG.md](CHANGELOG.md).
 
 Phorca was called **OrcaPhone** up to version 0.4.2. The rename came with a new package name, so

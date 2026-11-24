@@ -26,6 +26,8 @@ jobs:
         with:
           # the open-source GitHub Actions cache, not the default commercial caching service
           cache-provider: basic
+          # also on branches: the emulator jobs below start from this cache instead of each downloading everything
+          cache-read-only: false
 
       - name: Slicer core unit tests
         run: ./gradlew :slicer-core:test
@@ -42,7 +44,9 @@ jobs:
       - name: Build debug APK
         run: |
           set -o pipefail
-          ./gradlew :app:assembleDebug 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
+          # also builds the device-test APK, so its libraries land in the shared Gradle cache and the eight
+          # emulator jobs do not all download them from Maven Central at once (which answers 429)
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease :app:bundleRelease
@@ -57,6 +61,8 @@ jobs:
           if-no-files-found: error
 
   device-test:
+    # after the build job, so the 8 emulators reuse its downloads (in parallel they got throttled by the servers)
+    needs: build
     # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
     # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
@@ -101,4 +107,6 @@ jobs:
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest
+          # AGP 9 no longer prints failing tests to the log: show them from the result files
+          # (result file names contain spaces, so grep searches the folder itself; </dev/null: never wait for input)
+          script: ./gradlew :app:connectedDebugAndroidTest || { grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }

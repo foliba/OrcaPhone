@@ -3,6 +3,7 @@ package io.github.foliba.phorca.ui.about
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +53,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.coroutines.withContext
 
 const val SOURCE_URL = "https://github.com/foliba/Phorca"
+/** The privacy policy (also linked from the Google Play listing). */
+const val PRIVACY_URL = "https://github.com/foliba/Phorca/blob/main/PRIVACY.md"
 
 /** A bundled third-party component. [asset] is the bundled licence text, [url] the licence page otherwise. */
 private data class Component(
@@ -157,11 +160,13 @@ private fun Overview(onOpen: (String, String) -> Unit) {
                             "Prusa Research, Printables or Bambu Lab.",
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Row {
+                    // scrolls sideways on narrow phones instead of cutting off the last button
+                    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())) {
                         TextButton(onClick = { onOpen("GNU AGPL v3.0", "AGPL-3.0.txt") }) { Text("Licence") }
                         TextButton(onClick = { runCatching { uri.openUri(SOURCE_URL) } }) {
                             Icon(Icons.AutoMirrored.Outlined.OpenInNew, null); Spacer(Modifier.padding(start = 6.dp)); Text("Source code")
                         }
+                        TextButton(onClick = { runCatching { uri.openUri(PRIVACY_URL) } }) { Text("Privacy") }
                     }
                 }
             }

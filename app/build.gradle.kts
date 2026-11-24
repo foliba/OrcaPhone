@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("app.cash.licensee")
@@ -17,8 +16,8 @@ android {
         minSdk = 26
         // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.5.2"
+        versionCode = 16
+        versionName = "0.5.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -84,6 +83,7 @@ dependencies {
     // draws the OrcaSlicer bed textures (SVG)
     implementation("com.caverock:androidsvg-aar:1.4")
 
+    // Device-test libraries: CI resolves them in the build job, so the emulator jobs find them in the Gradle cache.
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

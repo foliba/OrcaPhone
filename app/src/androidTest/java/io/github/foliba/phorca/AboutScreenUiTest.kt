@@ -1,7 +1,7 @@
 package io.github.foliba.phorca
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -29,15 +29,16 @@ class AboutScreenUiTest {
             rule.onAllNodesWithTextSafe("GNU AFFERO GENERAL PUBLIC LICENSE")
         }
         rule.onNodeWithContentDescription("Back").performClick()
-        // The list is lazy: rows below the fold only exist once scrolled into view.
+        // The list is lazy: rows below the fold only exist once scrolled into view. It is the only node that
+        // scrolls to an index (the button row scrolls sideways too).
         // The generated library list must contain the real dependencies, e.g. JTS and OkHttp.
         // The list is read from assets in the background, so wait until it has loaded before scrolling.
         rule.waitUntil(10_000) {
             runCatching {
-                rule.onNode(hasScrollAction()).performScrollToNode(hasText("org.locationtech.jts:jts-core", substring = true))
+                rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("org.locationtech.jts:jts-core", substring = true))
             }.isSuccess
         }
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("com.squareup.okhttp3:okhttp ", substring = true))
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("com.squareup.okhttp3:okhttp ", substring = true))
         rule.onNodeWithText("com.squareup.okhttp3:okhttp ", substring = true).performClick()
         rule.waitUntil(5_000) { rule.onAllNodesWithTextSafe("Apache License") }
     }
