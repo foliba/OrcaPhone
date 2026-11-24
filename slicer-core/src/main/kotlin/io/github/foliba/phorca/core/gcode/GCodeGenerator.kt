@@ -106,14 +106,14 @@ class GCodeGenerator(
         val body = File(outFile.parentFile, outFile.name + ".body")
         val layerTimes = DoubleArray(layers.size)
         val maxZ = layers.lastOrNull()?.z ?: 0.0
-        val values = placeholderValues(layers.size, maxZ)
+        val values = placeholderValues(layers.size, maxZ, layers.firstOrNull())
 
         BufferedWriter(FileWriter(body), 1 shl 16).use { w ->
             val sb = StringBuilder(1 shl 16)
             // --- start
             sb.append("; EXECUTABLE_BLOCK_START\n")
             if (printer.emitM73) sb.append(M73_MARK).append("-1\n")
-            val start = Placeholders.apply(printer.startGcode, values)
+            val start = custom(printer.startGcode, values)
             if (printer.autoTemperatureCommands) {
                 if (!start.containsCommand("M190") && !start.containsCommand("M140")) sb.append("M190 S").append(filament.bedTempInitial).append(" ; wait for bed\n")
                 if (!start.containsCommand("M109") && !start.containsCommand("M104")) sb.append("M109 S").append(filament.nozzleTempInitial).append(" ; wait for nozzle\n")
@@ -167,7 +167,7 @@ class GCodeGenerator(
             // --- end
             if (!retracted) emitRetractText(sb)
             if (printer.flavor == GCodeFlavor.KLIPPER) sb.append("SET_PRINT_STATS_INFO CURRENT_LAYER=").append(layers.size).append('\n')
-            sb.append(Placeholders.apply(printer.endGcode, values)).append('\n')
+            sb.append(custom(printer.endGcode, values)).append('\n')
             if (printer.emitM73) sb.append("M73 P100 R0\n")
             sb.append("; EXECUTABLE_BLOCK_END\n")
             w.write(sb.toString())
@@ -213,9 +213,32 @@ class GCodeGenerator(
     /** The first layer alone, without the start G-code (OrcaSlicer 2.5.2 fixed the same distinction). */
     private fun firstLayerTime(s: PrintStats) = s.layerTimes.firstOrNull() ?: 0.0
 
-    private fun placeholderValues(layerCount: Int, maxZ: Double): MutableMap<String, String> {
+    /** Custom G-code Phorca could not fully evaluate (e.g. `{if …}`), for the slice warnings. */
+    val unresolvedGcode = LinkedHashSet<String>()
+
+    private fun custom(template: String, values: Map<String, String>): String =
+        Placeholders.apply(template, values).also { unresolvedGcode.addAll(Placeholders.unresolved(it)) }
+
+    private fun placeholderValues(layerCount: Int, maxZ: Double, first: LayerToolpaths?): MutableMap<String, String> {
         fun n(v: Double) = NumFmt.format(v, 3)
+        // bounding box of the first layer, as OrcaSlicer's first_layer_print_min / _max ("x,y")
+        var minX = Double.MAX_VALUE; var minY = Double.MAX_VALUE; var maxX = -Double.MAX_VALUE; var maxY = -Double.MAX_VALUE
+        first?.paths?.forEach { tp ->
+            var k = 0
+            while (k < tp.points.size) {
+                minX = min(minX, tp.points[k]); maxX = max(maxX, tp.points[k])
+                minY = min(minY, tp.points[k + 1]); maxY = max(maxY, tp.points[k + 1])
+                k += 2
+            }
+        }
+        if (minX > maxX) { minX = 0.0; minY = 0.0; maxX = printer.bedWidth; maxY = printer.bedDepth }
         return mutableMapOf(
+            "first_layer_print_min" to "${n(minX)},${n(minY)}",
+            "first_layer_print_max" to "${n(maxX)},${n(maxY)}",
+            "first_layer_print_size" to "${n(maxX - minX)},${n(maxY - minY)}",
+            "print_bed_min" to "0,0",
+            "print_bed_max" to "${n(printer.bedWidth)},${n(printer.bedDepth)}",
+            "z_offset" to "0",
             "nozzle_temperature_initial_layer" to filament.nozzleTempInitial.toString(),
             "first_layer_temperature" to filament.nozzleTempInitial.toString(),
             // OrcaSlicer 2.4.1 start G-code can reference the chamber targets; Phorca has no chamber control.
@@ -284,7 +307,7 @@ class GCodeGenerator(
         if (printer.layerChangeGcode.isNotBlank()) {
             values["layer_num"] = li.toString()
             values["layer_z"] = NumFmt.format(layer.z, 3)
-            cmds.add(Text(Placeholders.apply(printer.layerChangeGcode, values)))
+            cmds.add(Text(custom(printer.layerChangeGcode, values)))
         }
         if (li == 1) {
             if (filament.nozzleTemp != filament.nozzleTempInitial) cmds.add(Text("M104 S${filament.nozzleTemp}"))

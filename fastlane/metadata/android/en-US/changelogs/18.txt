@@ -1,3 +1,5 @@
 • Pressure advance per filament (Klipper, Marlin, RepRapFirmware), also from OrcaSlicer presets
 • New: + → Calibration → Pressure advance tower to find the right value
 • New sample: 3DBenchy, imported from Printables
+• Tap a printer's name in Setup to open its web interface
+• Fix: printer G-code like {layer_num + 1} is now evaluated (Klipper "Malformed command")

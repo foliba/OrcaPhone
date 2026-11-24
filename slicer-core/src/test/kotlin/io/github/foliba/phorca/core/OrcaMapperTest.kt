@@ -112,7 +112,9 @@ class OrcaMapperTest {
         assertEquals("PLA", M.firstString("PLA;PETG"))
         assertFalse(M.usesUnsupportedScripting("M190 S[bed_temperature_initial_layer_single]\nM104 S{nozzle_temperature[0]}"))
         assertTrue(M.usesUnsupportedScripting("{if layer_z < 10}G1 Z10{endif}"))
-        assertTrue(M.usesUnsupportedScripting("G1 Z{max_layer_z+10}"))
+        // arithmetic is evaluated since 0.5.5; conditions and ternaries are not
+        assertFalse(M.usesUnsupportedScripting("G1 Z{max_layer_z+10}\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}"))
+        assertTrue(M.usesUnsupportedScripting("M104 S{(initial_extruder % 2 == 0 ? 100.0 : 220.0)}"))
     }
 
     @Test

@@ -180,6 +180,12 @@ class Slicer(
             progress.update("Writing G-code", 0.75f)
             val gen = GCodeGenerator(printer, filament, p, cancel, thumbnailMeshes = meshes, paTower = paTower)
             val stats = gen.generate(result, outFile) { f -> progress.update("Writing G-code", 0.75f + 0.25f * f) }
+            if (gen.unresolvedGcode.isNotEmpty()) {
+                warnings.add(
+                    "The printer's custom G-code contains OrcaSlicer scripting Phorca can't evaluate, sent unchanged: " +
+                        gen.unresolvedGcode.take(3).joinToString(", ") + if (gen.unresolvedGcode.size > 3) " …" else "",
+                )
+            }
             progress.update("Done", 1f)
             return SliceResult(result, stats, outFile, warnings)
         }

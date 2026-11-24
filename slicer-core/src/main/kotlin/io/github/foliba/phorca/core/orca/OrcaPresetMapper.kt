@@ -11,6 +11,7 @@ import io.github.foliba.phorca.core.config.SupportType
 import io.github.foliba.phorca.core.config.SurfacePattern
 import io.github.foliba.phorca.core.config.WallOrder
 import io.github.foliba.phorca.core.gcode.NumFmt
+import io.github.foliba.phorca.core.gcode.Placeholders
 import java.security.MessageDigest
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -257,8 +258,8 @@ object OrcaPresetMapper {
 
     fun toPrinter(raw: Map<String, String>, id: String, name: String): PrinterProfile {
         val p = apply(printerFields, PrinterProfile(id = id, name = name, vendor = raw["vendor"] ?: "Orca"), raw)
-        val notes = if (usesUnsupportedScripting(p.startGcode) || usesUnsupportedScripting(p.endGcode))
-            "This printer's G-code uses OrcaSlicer scripting ({if …}, expressions) that Phorca cannot evaluate. Review the start/end G-code before printing."
+        val notes = if (usesUnsupportedScripting(p.startGcode) || usesUnsupportedScripting(p.endGcode) || usesUnsupportedScripting(p.layerChangeGcode))
+            "This printer's G-code uses OrcaSlicer scripting ({if …} conditions) that Phorca cannot evaluate. Review the custom G-code before printing."
         else ""
         return p.copy(notes = notes, printerModel = raw["printer_model"].orEmpty())
     }
@@ -280,10 +281,7 @@ object OrcaPresetMapper {
         while (i >= 0) {
             val end = gcode.indexOf('}', i + 1)
             if (end < 0) return false
-            val body = gcode.substring(i + 1, end).trim()
-            if (body.startsWith("if") || body.startsWith("elsif") || body.startsWith("else") || body.startsWith("endif") ||
-                body.any { it in "+*/<>=?(" || it == '-' && body.indexOf('-') > 0 }
-            ) return true
+            if (!Placeholders.isSupported(gcode.substring(i + 1, end))) return true
             i = gcode.indexOf('{', end + 1)
         }
         return false
