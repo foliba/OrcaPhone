@@ -23,6 +23,10 @@ class PressureAdvanceUiTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
 
+    /** A hang fails with a stack trace instead of blocking the whole run until the CI job's time limit. */
+    @get:Rule
+    val timeout: org.junit.rules.Timeout = org.junit.rules.Timeout.seconds(180)
+
     @Test
     fun towerFromTheAddMenu() {
         lateinit var vm: AppViewModel
