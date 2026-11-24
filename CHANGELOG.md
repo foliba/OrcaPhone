@@ -7,6 +7,8 @@
   sides on phones.
 - The layer number next to the layer slider no longer wraps (e.g. "200/20" + "0").
 - *Slice plate* no longer wraps onto two lines on narrow phones.
+- On short phones the layer slider's down arrow sat behind the colour legend in Preview; the slider now fits
+  between the top and bottom panels.
 - Setup without printers showed two *Add printer* buttons; the floating one now appears only once a printer
   exists.
 

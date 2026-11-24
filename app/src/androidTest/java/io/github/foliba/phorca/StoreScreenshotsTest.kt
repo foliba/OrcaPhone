@@ -4,7 +4,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.foliba.phorca.core.math.Vec3
 import io.github.foliba.phorca.ui.AppViewModel
 import io.github.foliba.phorca.ui.SliceUiState
 import io.github.foliba.phorca.ui.Tab
@@ -14,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Google Play screenshots: Prepare, Preview, Auto cut and Setup on a Sovol SV06 with its own bed. Runs only when
+ * Google Play screenshots: Prepare, Preview, Fill bed and Setup on a Sovol SV06 with its own bed. Runs only when
  * asked for (instrumentation argument screenshots=true, see .github/workflows/screenshots.yml); the PNGs go to
  * /sdcard/Download/phorca-screenshots, taken with the system's screencap so they survive the app's uninstall.
  */
@@ -77,19 +76,16 @@ class StoreScreenshotsTest {
         // the toolpaths are uploaded to the GPU after the result arrives; give the software renderer time
         shot("2_preview", settleMs = 8000)
 
-        // 3. Auto cut: a part too big for the bed, its flat faces coloured to pick the one to lie on
+        // 3. Fill bed: as many instances as fit, spaced for brim and skirt
         rule.runOnUiThread {
             vm.setTab(Tab.PREPARE)
             vm.clearPlate()
-            vm.addSample(AppViewModel.Sample.CUBE)
-            vm.setSelectedScale(Vec3(14.0, 6.0, 4.0))
+            vm.addSample(AppViewModel.Sample.CYLINDER)
+            vm.setInstances(null)
+            vm.setView(-100.0, 55.0)
+            vm.frameBed()
         }
-        rule.waitForIdle()
-        rule.runOnUiThread { vm.startAutoCut() }
-        rule.waitUntil(20_000) { vm.autoCut.value != null }
-        rule.runOnUiThread { vm.setView(-120.0, 30.0); vm.frameContent() }
-        shot("3_autocut")
-        rule.runOnUiThread { vm.cancelAutoCut() }
+        shot("3_fill_bed")
 
         // 4. Setup
         rule.runOnUiThread { vm.setTab(Tab.DEVICE) }

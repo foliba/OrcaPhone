@@ -755,6 +755,8 @@ private fun ActionBar(
                     colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
+                    // narrower side padding than the default 24 dp, so "Slice plate" fits on narrow phones
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
                     modifier = Modifier.padding(end = 4.dp).height(48.dp),
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.ViewList, null)
