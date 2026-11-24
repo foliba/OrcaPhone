@@ -25,14 +25,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.LibraryAdd
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Sailing
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerticalAlignBottom
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -51,6 +54,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -72,6 +77,7 @@ import io.github.foliba.phorca.core.config.InfillPattern
 import io.github.foliba.phorca.core.config.PrinterProfile
 import io.github.foliba.phorca.core.config.ProcessProfile
 import io.github.foliba.phorca.core.config.SupportType
+import io.github.foliba.phorca.core.gcode.NumFmt
 import io.github.foliba.phorca.core.math.Vec3
 import io.github.foliba.phorca.core.plate.PlateObject
 import io.github.foliba.phorca.data.PresetState
@@ -386,9 +392,12 @@ fun NumberField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSheet(onImport: () -> Unit, onLink: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, onDismiss: () -> Unit) {
+fun AddSheet(
+    onImport: () -> Unit, onLink: () -> Unit, onSample: (AppViewModel.Sample) -> Unit, onDismiss: () -> Unit,
+    onBenchy: () -> Unit = {}, onPaTower: () -> Unit = {},
+) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().verticalScroll(rememberScrollState())) {
             Text("Add to plate", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp))
             ListItem(
                 headlineContent = { Text("Import file") },
@@ -415,7 +424,78 @@ fun AddSheet(onImport: () -> Unit, onLink: () -> Unit, onSample: (AppViewModel.S
                     modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable { onSample(s) },
                 )
             }
+            ListItem(
+                headlineContent = { Text("3DBenchy") },
+                supportingContent = { Text("The classic test boat, downloaded from Printables") },
+                leadingContent = { Icon(Icons.Outlined.Sailing, null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onBenchy),
+            )
+            HorizontalDivider(Modifier.padding(horizontal = 20.dp))
+            Text("Calibration", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 20.dp, top = 12.dp))
+            ListItem(
+                headlineContent = { Text("Pressure advance tower") },
+                supportingContent = { Text("Pressure advance rises with the height; the sharpest corners show your value") },
+                leadingContent = { Icon(Icons.Outlined.Speed, null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.padding(horizontal = 4.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onPaTower),
+            )
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+
+/** Start, end and step of a pressure advance tower, with OrcaSlicer's ranges for direct drive and Bowden. */
+@Composable
+fun PaTowerDialog(onAdd: (io.github.foliba.phorca.core.gcode.PaTower) -> Unit, onDismiss: () -> Unit) {
+    val dd = io.github.foliba.phorca.core.gcode.PaTower.DIRECT_DRIVE
+    val bowden = io.github.foliba.phorca.core.gcode.PaTower.BOWDEN
+    var start by remember { mutableStateOf(NumFmt.format(dd.start, 4)) }
+    var end by remember { mutableStateOf(NumFmt.format(dd.end, 4)) }
+    var step by remember { mutableStateOf(NumFmt.format(dd.stepPerMm, 4)) }
+    val tower = run {
+        val s = parseNumber(start); val e = parseNumber(end); val st = parseNumber(step)
+        if (s != null && e != null && st != null && s >= 0 && e > s && st > 0) io.github.foliba.phorca.core.gcode.PaTower(s, e, st) else null
+    }
+    fun preset(t: io.github.foliba.phorca.core.gcode.PaTower) {
+        start = NumFmt.format(t.start, 4); end = NumFmt.format(t.end, 4); step = NumFmt.format(t.stepPerMm, 4)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Pressure advance tower") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "A square tower printed as walls only. Pressure advance starts at the start value and rises by the step " +
+                        "every millimetre. Print it with the filament you want to tune, then find the height with the sharpest corners.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(selected = tower == dd, onClick = { preset(dd) }, label = { Text("Direct drive") })
+                    androidx.compose.material3.FilterChip(selected = tower == bowden, onClick = { preset(bowden) }, label = { Text("Bowden") })
+                }
+                val kb = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                OutlinedTextField(start, { start = it }, label = { Text("Start") }, singleLine = true, keyboardOptions = kb,
+                    modifier = Modifier.fillMaxWidth().testTag("paStart"))
+                OutlinedTextField(end, { end = it }, label = { Text("End") }, singleLine = true, keyboardOptions = kb,
+                    isError = tower == null, modifier = Modifier.fillMaxWidth().testTag("paEnd"))
+                OutlinedTextField(step, { step = it }, label = { Text("Step per mm") }, singleLine = true, keyboardOptions = kb,
+                    modifier = Modifier.fillMaxWidth().testTag("paStep"))
+                if (tower != null) {
+                    Text(
+                        "Tower height ${NumFmt.format((tower.end - tower.start) / tower.stepPerMm, 1)} mm (5 mm minimum, " +
+                            "at most the printer's height).",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text("Start must be 0 or more, End above Start, and the step above 0.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { tower?.let(onAdd) }, enabled = tower != null) { Text("Add tower") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

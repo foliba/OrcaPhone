@@ -40,6 +40,9 @@ class PrintStats(
     val layerTimes: DoubleArray,
 )
 
+/** Written into the G-code header; must equal the app's versionName (checked by a unit test). */
+const val PHORCA_VERSION = "0.5.5"
+
 /**
  * Turns ordered tool paths into G-code: travel/retraction handling, extrusion amounts,
  * cooling (fan + minimum layer time), and a look-ahead time estimate.
@@ -51,6 +54,8 @@ class GCodeGenerator(
     private val cancel: CancelToken = CancelToken(),
     /** Models (world coordinates) to render into the preview thumbnails; none = no thumbnails. */
     private val thumbnailMeshes: List<io.github.foliba.phorca.core.mesh.Mesh> = emptyList(),
+    /** Pressure advance calibration: the value changes with the height instead of the filament's own. */
+    private val paTower: PaTower? = null,
 ) {
     private companion object {
         const val TRAVEL = 0
@@ -58,7 +63,6 @@ class GCodeGenerator(
         const val RETRACT = 2
         const val ZMOVE = 3
         const val M73_MARK = ";@M73 "
-        const val VERSION = "0.5.3"
         /** Thumbnail sizes: a large preview and a small list icon, as Mainsail/Fluidd/printer screens use. */
         val THUMBNAILS = listOf(300 to 300, 32 to 32)
     }
@@ -102,14 +106,14 @@ class GCodeGenerator(
         val body = File(outFile.parentFile, outFile.name + ".body")
         val layerTimes = DoubleArray(layers.size)
         val maxZ = layers.lastOrNull()?.z ?: 0.0
-        val values = placeholderValues(layers.size, maxZ)
+        val values = placeholderValues(layers.size, maxZ, layers.firstOrNull())
 
         BufferedWriter(FileWriter(body), 1 shl 16).use { w ->
             val sb = StringBuilder(1 shl 16)
             // --- start
             sb.append("; EXECUTABLE_BLOCK_START\n")
             if (printer.emitM73) sb.append(M73_MARK).append("-1\n")
-            val start = Placeholders.apply(printer.startGcode, values)
+            val start = custom(printer.startGcode, values)
             if (printer.autoTemperatureCommands) {
                 if (!start.containsCommand("M190") && !start.containsCommand("M140")) sb.append("M190 S").append(filament.bedTempInitial).append(" ; wait for bed\n")
                 if (!start.containsCommand("M109") && !start.containsCommand("M104")) sb.append("M109 S").append(filament.nozzleTempInitial).append(" ; wait for nozzle\n")
@@ -117,6 +121,10 @@ class GCodeGenerator(
             sb.append(start).append('\n')
             sb.append("G90\nM83 ; relative extrusion\n")
             if (printer.flavor == GCodeFlavor.KLIPPER) sb.append("SET_PRINT_STATS_INFO TOTAL_LAYER=").append(layers.size).append('\n')
+            when {
+                paTower != null -> sb.append(PressureAdvance.command(printer.flavor, paTower.start)).append(" ; pressure advance tower\n")
+                filament.enablePressureAdvance -> sb.append(PressureAdvance.command(printer.flavor, filament.pressureAdvance)).append('\n')
+            }
             if (filament.closeFanFirstLayers > 0) { sb.append("M107\n"); lastFanPercent = 0 }
             w.write(sb.toString()); sb.setLength(0)
             x = 0.0; y = 0.0; z = 0.0
@@ -159,7 +167,7 @@ class GCodeGenerator(
             // --- end
             if (!retracted) emitRetractText(sb)
             if (printer.flavor == GCodeFlavor.KLIPPER) sb.append("SET_PRINT_STATS_INFO CURRENT_LAYER=").append(layers.size).append('\n')
-            sb.append(Placeholders.apply(printer.endGcode, values)).append('\n')
+            sb.append(custom(printer.endGcode, values)).append('\n')
             if (printer.emitM73) sb.append("M73 P100 R0\n")
             sb.append("; EXECUTABLE_BLOCK_END\n")
             w.write(sb.toString())
@@ -205,9 +213,32 @@ class GCodeGenerator(
     /** The first layer alone, without the start G-code (OrcaSlicer 2.5.2 fixed the same distinction). */
     private fun firstLayerTime(s: PrintStats) = s.layerTimes.firstOrNull() ?: 0.0
 
-    private fun placeholderValues(layerCount: Int, maxZ: Double): MutableMap<String, String> {
+    /** Custom G-code Phorca could not fully evaluate (e.g. `{if …}`), for the slice warnings. */
+    val unresolvedGcode = LinkedHashSet<String>()
+
+    private fun custom(template: String, values: Map<String, String>): String =
+        Placeholders.apply(template, values).also { unresolvedGcode.addAll(Placeholders.unresolved(it)) }
+
+    private fun placeholderValues(layerCount: Int, maxZ: Double, first: LayerToolpaths?): MutableMap<String, String> {
         fun n(v: Double) = NumFmt.format(v, 3)
+        // bounding box of the first layer, as OrcaSlicer's first_layer_print_min / _max ("x,y")
+        var minX = Double.MAX_VALUE; var minY = Double.MAX_VALUE; var maxX = -Double.MAX_VALUE; var maxY = -Double.MAX_VALUE
+        first?.paths?.forEach { tp ->
+            var k = 0
+            while (k < tp.points.size) {
+                minX = min(minX, tp.points[k]); maxX = max(maxX, tp.points[k])
+                minY = min(minY, tp.points[k + 1]); maxY = max(maxY, tp.points[k + 1])
+                k += 2
+            }
+        }
+        if (minX > maxX) { minX = 0.0; minY = 0.0; maxX = printer.bedWidth; maxY = printer.bedDepth }
         return mutableMapOf(
+            "first_layer_print_min" to "${n(minX)},${n(minY)}",
+            "first_layer_print_max" to "${n(maxX)},${n(maxY)}",
+            "first_layer_print_size" to "${n(maxX - minX)},${n(maxY - minY)}",
+            "print_bed_min" to "0,0",
+            "print_bed_max" to "${n(printer.bedWidth)},${n(printer.bedDepth)}",
+            "z_offset" to "0",
             "nozzle_temperature_initial_layer" to filament.nozzleTempInitial.toString(),
             "first_layer_temperature" to filament.nozzleTempInitial.toString(),
             // OrcaSlicer 2.4.1 start G-code can reference the chamber targets; Phorca has no chamber control.
@@ -272,10 +303,11 @@ class GCodeGenerator(
         }))
         if (printer.emitM73) cmds.add(Text(M73_MARK + li))
         if (printer.flavor == GCodeFlavor.KLIPPER) cmds.add(Text("SET_PRINT_STATS_INFO CURRENT_LAYER=${li + 1}"))
+        if (paTower != null && li > 0) cmds.add(Text(PressureAdvance.command(printer.flavor, paTower.valueAt(layer.z))))
         if (printer.layerChangeGcode.isNotBlank()) {
             values["layer_num"] = li.toString()
             values["layer_z"] = NumFmt.format(layer.z, 3)
-            cmds.add(Text(Placeholders.apply(printer.layerChangeGcode, values)))
+            cmds.add(Text(custom(printer.layerChangeGcode, values)))
         }
         if (li == 1) {
             if (filament.nozzleTemp != filament.nozzleTempInitial) cmds.add(Text("M104 S${filament.nozzleTemp}"))
@@ -520,7 +552,7 @@ class GCodeGenerator(
         // Exactly the PrusaSlicer/OrcaSlicer form ("on <date> at <time>"): Moonraker identifies the slicer
         // from this line and only then reads the estimated time, filament use and thumbnails.
         val date = SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss", Locale.US).format(Date())
-        append("; generated by Phorca ").append(VERSION).append(" on ").append(date).append('\n')
+        append("; generated by Phorca ").append(PHORCA_VERSION).append(" on ").append(date).append('\n')
         // Older Moonraker versions only recognise known slicer names ("OrcaSlicer <version> on ...").
         append("; G-code format compatible with OrcaSlicer 2.3 on Klipper/Moonraker\n")
         append(thumbnails())
@@ -576,6 +608,8 @@ class GCodeGenerator(
         append("\n; sparse_infill_density = ").append(p.sparseInfillDensity.roundToInt()).append('%')
         append("\n; wall_loops = ").append(p.wallLoops)
         append("\n; enable_support = ").append(if (p.enableSupport) 1 else 0)
+        append("\n; enable_pressure_advance = ").append(if (filament.enablePressureAdvance) 1 else 0)
+        append("\n; pressure_advance = "); NumFmt.append(this, filament.pressureAdvance, 4)
         append('\n')
     }
 }

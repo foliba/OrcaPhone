@@ -46,7 +46,7 @@ jobs:
           set -o pipefail
           # also builds the device-test APK, so its libraries land in the shared Gradle cache and the eight
           # emulator jobs do not all download them from Maven Central at once (which answers 429)
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:resolveDeviceTestRunner 2>&1 | tee build.log || { echo "==== compiler errors ===="; grep -E "^e: " build.log; exit 1; }
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease :app:bundleRelease
@@ -63,13 +63,13 @@ jobs:
   device-test:
     # after the build job, so the 8 emulators reuse its downloads (in parallel they got throttled by the servers)
     needs: build
-    # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
+    # Android 12 (the oldest supported, minSdk 31) up to the newest version, each on a phone and a tablet: newer versions lay out system
     # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
       fail-fast: false
       matrix:
         # Android 17's SDK packages are named 37.0
-        api: ['30', '35', '36', '37.0']
+        api: ['31', '35', '36', '37.0']
         # tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
         device: [phone, tablet]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
@@ -99,14 +99,14 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          # Android 11 runs the plain image, the newer versions the Google APIs image; Android 17's is
-          # published only with 16 KB memory pages (its default)
-          target: ${{ matrix.api == '30' && 'default' || (matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis') }}
+          # Google APIs images; Android 17's is published only with 16 KB memory pages (its default)
+          target: ${{ matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis' }}
           profile: ${{ matrix.device == 'tablet' && 'pixel_tablet' || '' }}
           ram-size: 4096M
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           # AGP 9 no longer prints failing tests to the log: show them from the result files
-          # (result file names contain spaces, so grep searches the folder itself; </dev/null: never wait for input)
-          script: ./gradlew :app:connectedDebugAndroidTest || { grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }
+          # (result file names contain spaces, so grep searches the folder itself; </dev/null: never wait for input).
+          # A hanging test stops the run after 20 minutes; the test runner's log then names the test it was in.
+          script: timeout 1200 ./gradlew :app:connectedDebugAndroidTest || { adb logcat -d -s TestRunner:I PhorcaTest:I AndroidRuntime:E </dev/null | tail -60; grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }

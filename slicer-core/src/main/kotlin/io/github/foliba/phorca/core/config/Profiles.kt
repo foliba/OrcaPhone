@@ -137,6 +137,10 @@ data class FilamentProfile(
     val slowDownMinSpeed: Double = 20.0,
     /** Overrides the printer retraction when > 0. */
     val retractionLengthOverride: Double = 0.0,
+    /** Sets [pressureAdvance] at the start of the print (off: the firmware's own value applies, e.g. printer.cfg). */
+    val enablePressureAdvance: Boolean = false,
+    /** Pressure advance (Klipper) / linear advance K (Marlin) / pressure advance S (RepRapFirmware). */
+    val pressureAdvance: Double = 0.02,
 )
 
 /** Print process settings ("Process" preset in OrcaSlicer), grouped like Orca's tabs. */
@@ -228,4 +232,23 @@ data class PrinterConnection(
     val type: HostType = HostType.MOONRAKER,
     val url: String = "http://",
     val apiKey: String = "",
-)
+) {
+    /**
+     * The printer's web interface (Mainsail/Fluidd, OctoPrint, PrusaLink), or null without a host. Moonraker's API
+     * port 7125 is dropped: Mainsail and Fluidd are served on the normal web port of the same host.
+     */
+    fun webUrl(): String? {
+        var u = url.trim()
+        if (u.isEmpty()) return null
+        if (!u.contains("://")) u = "http://$u"
+        val scheme = u.substringBefore("://")
+        var rest = u.substringAfter("://")
+        val path = rest.indexOf('/').let { if (it >= 0) rest.substring(it) else "" }
+        var host = if (path.isEmpty()) rest else rest.substring(0, rest.indexOf('/'))
+        if (host.isBlank() || host.startsWith(":")) return null
+        if (type == HostType.MOONRAKER && host.endsWith(":7125")) host = host.removeSuffix(":7125")
+        // API paths are not pages: open the front-end's start page
+        rest = if (path.trimEnd('/').let { it.isEmpty() || it.startsWith("/api") || it.startsWith("/printer") || it.startsWith("/server") }) "/" else path
+        return "$scheme://$host$rest"
+    }
+}

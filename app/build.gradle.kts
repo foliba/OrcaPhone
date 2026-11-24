@@ -13,11 +13,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.foliba.phorca"
-        minSdk = 26
+        minSdk = 31
         // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.5.4"
+        versionCode = 18
+        versionName = "0.5.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -129,5 +129,16 @@ androidComponents {
             report.set(tasks.named<app.cash.licensee.LicenseeTask>("licenseeAndroid$name").flatMap { it.jsonOutput })
         }
         variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleLicenseReport::outputDir)
+    }
+}
+
+// CI: the build job downloads the device-test runner's own libraries (AGP's unified test platform), so the
+// emulator jobs find them in the Gradle cache instead of all asking Maven Central at once (which answers 429).
+tasks.register("resolveDeviceTestRunner") {
+    notCompatibleWithConfigurationCache("resolves AGP's test platform configurations by name")
+    doLast {
+        val utp = project.configurations.filter { it.name.startsWith("unified-test-platform") && it.isCanBeResolved }
+        utp.forEach { it.resolve() }
+        println("Resolved ${utp.size} test platform configurations: ${utp.joinToString { it.name }}")
     }
 }

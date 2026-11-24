@@ -1,0 +1,6 @@
+• Pressure Advance pro Filament (Klipper, Marlin, RepRapFirmware), auch aus OrcaSlicer-Profilen
+• Neu: + → Calibration → Pressure advance tower, um den richtigen Wert zu finden
+• Neues Beispiel: 3DBenchy, von Printables importiert
+• Tippe in Setup auf den Druckernamen, um seine Weboberfläche zu öffnen
+• Fix: Drucker-G-Code wie {layer_num + 1} wird jetzt ausgewertet (Klipper „Malformed command")
+• Benötigt jetzt Android 12 oder neuer

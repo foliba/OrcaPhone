@@ -1,5 +1,6 @@
 package io.github.foliba.phorca.ui.device
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -51,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -63,9 +66,9 @@ import io.github.foliba.phorca.data.HostStatus
 import io.github.foliba.phorca.data.JobCommand
 import io.github.foliba.phorca.ui.AppViewModel
 import io.github.foliba.phorca.ui.SliceUiState
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @Composable
 fun DeviceScreen(vm: AppViewModel, onSignIn: () -> Unit) {
@@ -227,7 +230,24 @@ private fun PrinterCard(
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(c.name, style = MaterialTheme.typography.titleMedium)
+                    // the name opens the printer's web interface (Mainsail/Fluidd, OctoPrint, PrusaLink) in the browser
+                    val web = c.webUrl()
+                    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+                    if (web != null) {
+                        Row(
+                            Modifier.clickable(onClickLabel = "Open web interface") { runCatching { uri.openUri(web) } }.testTag("printerWebLink"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                c.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Outlined.OpenInNew, "Open web interface", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        Text(c.name, style = MaterialTheme.typography.titleMedium)
+                    }
                     Text("${c.type.label} · ${c.url}", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }

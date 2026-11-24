@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.foliba.phorca.PhorcaApp
 import io.github.foliba.phorca.core.config.PrinterConnection
 import io.github.foliba.phorca.core.gcode.NumFmt
+import io.github.foliba.phorca.core.gcode.PaTower
 import io.github.foliba.phorca.core.math.Mat4
 import io.github.foliba.phorca.core.math.Vec3
 import io.github.foliba.phorca.core.mesh.MeshLoader
@@ -463,6 +464,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         addObjects(listOf(PlateObject.create(nextId.getAndIncrement(), s.label, mesh)))
     }
+
+    /** The 3DBenchy on Printables: shows its author and licence and downloads the original model. */
+    fun addBenchy() = openModelLink(BENCHY_URL)
+
+    /** Pressure advance towers on the plates, by their mesh (instances and copies share it). */
+    private val paTowers = java.util.IdentityHashMap<io.github.foliba.phorca.core.mesh.Mesh, PaTower>()
+
+    /**
+     * Adds a pressure advance calibration tower: a square tower printed as walls only, its pressure advance
+     * rising with the height. The name carries the values needed to read the result.
+     */
+    fun addPaTower(tower: PaTower) {
+        val h = tower.height(printer.maxHeight)
+        val mesh = Primitives.box(PaTower.SIZE, PaTower.SIZE, h)
+        synchronized(paTowers) { paTowers[mesh] = tower }
+        val name = "PA tower ${NumFmt.format(tower.start, 4)}–${NumFmt.format(tower.valueAt(h), 4)} " +
+            "(+${NumFmt.format(tower.stepPerMm, 4)}/mm)"
+        addObjects(listOf(PlateObject.create(nextId.getAndIncrement(), name, mesh)))
+        say("Print it, then find the height (mm) with the sharpest corners: " +
+            "pressure advance = ${NumFmt.format(tower.start, 4)} + height × ${NumFmt.format(tower.stepPerMm, 4)}")
+    }
+
+    /** The pressure advance tower among [objs], if any: its values replace the filament's for that print. */
+    private fun paTowerOf(objs: List<PlateObject>): PaTower? = synchronized(paTowers) { objs.firstNotNullOfOrNull { paTowers[it.mesh] } }
 
     // ------------------------------------------------------------------ import from websites
 
@@ -972,7 +997,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val dir = gcodeDir(bedId).apply { deleteRecursively(); mkdirs() }
                     val tmp = File(dir, "plate.gcode")
                     var lastUpdate = 0L
-                    val result = Slicer(p, filament, process, token).slice(objs.map { it.worldMesh() }, tmp, objs.flatMap { it.worldVolumes() }) { stage, f ->
+                    val result = Slicer(p, filament, process, token, paTowerOf(objs)).slice(objs.map { it.worldMesh() }, tmp, objs.flatMap { it.worldVolumes() }) { stage, f ->
                         val now = System.currentTimeMillis()
                         if (!token.isCancelled && (now - lastUpdate > 60 || f >= 1f)) {
                             lastUpdate = now
@@ -1131,6 +1156,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
+        const val BENCHY_URL = "https://www.printables.com/model/3161-3d-benchy"
+
         fun clampLayer(v: Int, count: Int) = min(max(v, 0), max(0, count - 1))
     }
 }
