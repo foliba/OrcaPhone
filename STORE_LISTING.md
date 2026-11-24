@@ -71,8 +71,10 @@ data beyond the IP address that every network request has.
 ## Release
 
 1. **App signing:** turn on *Play App Signing* and upload the first App Bundle; Google then knows the upload
-   key that signs `Phorca-<version>.aab` (repository secrets `PHORCA_KEYSTORE*`).
-2. **App bundle:** `Phorca-<version>.aab` from the GitHub release.
+   key that signs it (repository secrets `PHORCA_KEYSTORE*`).
+2. **App bundle:** the App Bundle (`.aab`) is **never published** (not in GitHub releases, not as a workflow
+   artifact). Until the upload to Google Play is automated, build it where the upload key is, e.g. on your
+   computer: `./gradlew :app:bundleRelease` with the `PHORCA_KEYSTORE*` environment variables set.
 3. **Closed test first:** new personal developer accounts need a closed test with at least 12 testers for
    14 days before production access.
 4. **Production:** then apply for production; review usually takes a few days.

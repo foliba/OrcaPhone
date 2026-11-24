@@ -8,6 +8,8 @@
 
 ### Google Play
 - Privacy policy (`PRIVACY.md`), linked in the app under About & licences → Privacy.
+- The App Bundle (`.aab`) is no longer attached to GitHub releases (and was removed from the older ones):
+  it is only for Google Play and is never published.
 - Store listing texts (English, German), icon and feature graphic in `fastlane/metadata/android/`, a
   checklist for the Play Console in `STORE_LISTING.md`, and a *Store screenshots* workflow that takes the
   screenshots on a phone and a tablet emulator.

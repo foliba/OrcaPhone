@@ -60,8 +60,6 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p dist
           cp app/build/outputs/apk/release/*.apk "dist/Phorca-${VERSION}.apk"
-          # The App Bundle is what Google Play takes
-          cp app/build/outputs/bundle/release/*.aab "dist/Phorca-${VERSION}.aab"
           # Release notes: the CHANGELOG section of this version
           awk -v v="$VERSION" '$0 ~ "^## "v {p=1; next} /^## / {p=0} p' CHANGELOG.md > dist/notes.md
           cat dist/notes.md
@@ -73,7 +71,6 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Phorca v${{ env.VERSION }}
           body_path: dist/notes.md
-          files: |
-            dist/*.apk
-            dist/*.aab
+          # the APK only: the App Bundle (Google Play's format) is never published
+          files: dist/*.apk
           prerelease: ${{ startsWith(env.VERSION, '0.') }}
