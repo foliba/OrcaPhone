@@ -2,6 +2,9 @@
 
 ## 0.5.5 — pressure advance, calibration tower, 3DBenchy
 
+### Requirements
+- **Android 12 or newer** (was Android 8.0). Devices on Android 8 to 11 can no longer install or update Phorca.
+
 ### Pressure advance
 - Filament presets have *Pressure advance* (Filament → Pressure advance): when switched on, the value is set
   at the start of the print, after the start G-code: `SET_PRESSURE_ADVANCE ADVANCE=…` on Klipper, `M900 K…` on

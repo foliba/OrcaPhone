@@ -36,7 +36,7 @@ class PressureAdvanceUiTest {
         rule.onNodeWithContentDescription("Add model").performClick()
         rule.onNodeWithText("3DBenchy").performScrollTo()
         rule.onNodeWithText("Pressure advance tower").performScrollTo().performClick()
-        // the Bowden preset (no typing: replacing text in a dialog's field hangs the test tool on Android 11)
+        // the Bowden preset (no typing: replacing text in a dialog's field hung the test tool on the Android 11 emulator)
         rule.onNodeWithText("Bowden").performClick()
         rule.onNodeWithTag("paEnd").assertTextContains("1")
         rule.onNodeWithText("Add tower").performClick()

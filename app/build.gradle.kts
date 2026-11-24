@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.foliba.phorca"
-        minSdk = 26
+        minSdk = 31
         // Google Play requires a recent target: API 36 (Android 16) for new apps and updates since Aug 2026
         targetSdk = 36
         versionCode = 18

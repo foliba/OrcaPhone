@@ -63,13 +63,13 @@ jobs:
   device-test:
     # after the build job, so the 8 emulators reuse its downloads (in parallel they got throttled by the servers)
     needs: build
-    # Android 11 up to the newest version, each on a phone and a tablet: newer versions lay out system
+    # Android 12 (the oldest supported, minSdk 31) up to the newest version, each on a phone and a tablet: newer versions lay out system
     # bars and dialogs differently (Android 15 caught the Import bar being pushed off-screen).
     strategy:
       fail-fast: false
       matrix:
         # Android 17's SDK packages are named 37.0
-        api: ['30', '35', '36', '37.0']
+        api: ['31', '35', '36', '37.0']
         # tablet: wide screen, starts in landscape (caught the view buttons under the object panel)
         device: [phone, tablet]
     # Runs the slicer on a real Android runtime (catches Android-only issues such as ICU regex differences).
@@ -99,9 +99,8 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
-          # Android 11 runs the plain image, the newer versions the Google APIs image; Android 17's is
-          # published only with 16 KB memory pages (its default)
-          target: ${{ matrix.api == '30' && 'default' || (matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis') }}
+          # Google APIs images; Android 17's is published only with 16 KB memory pages (its default)
+          target: ${{ matrix.api == '37.0' && 'google_apis_ps16k' || 'google_apis' }}
           profile: ${{ matrix.device == 'tablet' && 'pixel_tablet' || '' }}
           ram-size: 4096M
           emulator-boot-timeout: 900
