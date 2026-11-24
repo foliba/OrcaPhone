@@ -9,7 +9,6 @@ import io.github.foliba.phorca.ui.AppViewModel
 import io.github.foliba.phorca.ui.SliceUiState
 import io.github.foliba.phorca.ui.Tab
 import kotlinx.coroutines.runBlocking
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,7 +38,8 @@ class StoreScreenshotsTest {
 
     @Test
     fun storeScreenshots() {
-        assumeTrue(InstrumentationRegistry.getArguments().getString("screenshots") == "true")
+        // Only in the screenshots workflow. A plain return, because AGP 9 counts a skipped assumption as a failure.
+        if (InstrumentationRegistry.getArguments().getString("screenshots") != "true") return
         shell("mkdir -p $dir")
         // a clean status bar: fixed time, full battery, no notifications
         shell("settings put global sysui_demo_allowed 1")
