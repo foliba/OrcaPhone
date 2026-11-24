@@ -106,4 +106,5 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           # AGP 9 no longer prints failing tests to the log: show them from the result files
-          script: ./gradlew :app:connectedDebugAndroidTest || { for f in $(grep -rl '<failure' app/build/outputs/androidTest-results 2>/dev/null); do echo "==== $f"; grep -B1 -A12 '<failure' "$f" | cut -c1-400; done; exit 1; }
+          # (result file names contain spaces, so grep searches the folder itself; </dev/null: never wait for input)
+          script: ./gradlew :app:connectedDebugAndroidTest || { grep -r -B1 -A12 --include='*.xml' '<failure' app/build/outputs/androidTest-results </dev/null | cut -c1-400; exit 1; }
