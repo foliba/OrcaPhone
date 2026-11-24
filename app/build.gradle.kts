@@ -83,6 +83,7 @@ dependencies {
     // draws the OrcaSlicer bed textures (SVG)
     implementation("com.caverock:androidsvg-aar:1.4")
 
+    // Device-test libraries: CI resolves them in the build job, so the emulator jobs find them in the Gradle cache.
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
