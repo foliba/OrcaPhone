@@ -76,6 +76,10 @@ class StoreScreenshotsTest {
         // the toolpaths are uploaded to the GPU after the result arrives; give the software renderer time
         shot("2_preview", settleMs = 8000)
 
+        // 4. Setup (taken before scene 3, whose "Filled bed" message would stay on screen)
+        rule.runOnUiThread { vm.setTab(Tab.DEVICE) }
+        shot("4_setup")
+
         // 3. Fill bed: as many instances as fit, spaced for brim and skirt
         rule.runOnUiThread {
             vm.setTab(Tab.PREPARE)
@@ -86,11 +90,6 @@ class StoreScreenshotsTest {
             vm.frameBed()
         }
         shot("3_fill_bed")
-
-        // 4. Setup
-        rule.runOnUiThread { vm.setTab(Tab.DEVICE) }
-        // long enough for the "Filled bed" message from scene 3 to go away
-        shot("4_setup", settleMs = 7000)
 
         shell("am broadcast -a com.android.systemui.demo -e command exit")
     }
