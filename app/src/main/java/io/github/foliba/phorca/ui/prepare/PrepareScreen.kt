@@ -759,7 +759,7 @@ private fun ActionBar(
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.ViewList, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold)
+                    Text(if (stale) "Re-slice" else sliceLabel, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
                 }
             }
         }

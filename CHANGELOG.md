@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- *Fit* and the bed view now fit the width of the screen in portrait, so models are no longer cut off at the
+  sides on phones.
+- The layer number next to the layer slider no longer wraps (e.g. "200/20" + "0").
+- *Slice plate* no longer wraps onto two lines on narrow phones.
+- Setup without printers showed two *Add printer* buttons; the floating one now appears only once a printer
+  exists.
+
 ## 0.5.3 — see-through bed, Gradle 9
 
 ### Fixes
